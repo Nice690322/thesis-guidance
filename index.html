@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nice 論文指導系統</title>
+  <style>
+    :root {
+      --ink: #18221f;
+      --muted: #61706a;
+      --paper: #f4f1e8;
+      --panel: #fffdf7;
+      --line: #d6d5ca;
+      --green: #1e6f50;
+      --red: #a13b35;
+      --amber: #b16b17;
+      --blue: #2e607d;
+      --black: #16201d;
+      --shadow: 0 10px 30px rgba(26, 35, 31, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(115deg, #f5f0df 0%, #eef2eb 52%, #e8eef1 100%);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      letter-spacing: 0;
+    }
+    button, input, select, textarea { font: inherit; letter-spacing: 0; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+    aside {
+      padding: 28px 20px;
+      color: #f7f5ee;
+      background: #17231f;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; margin-bottom: 30px; }
+    .mark { width: 34px; height: 34px; border: 2px solid #e9c46a; display: grid; place-items: center; font-weight: 800; }
+    .brand strong { display: block; font-size: 18px; }
+    .brand span { display: block; margin-top: 3px; color: #aebbb5; font-size: 12px; }
+    nav button {
+      width: 100%; border: 0; padding: 11px 10px; color: #c5d1cb; background: transparent;
+      display: flex; align-items: center; gap: 10px; text-align: left; border-left: 3px solid transparent;
+    }
+    nav button.active { color: #fff; background: #23342e; border-left-color: #e9c46a; }
+    .nav-icon { width: 22px; text-align: center; color: #e9c46a; }
+    .aside-foot { position: absolute; left: 20px; right: 20px; bottom: 24px; color: #96a59e; font-size: 11px; line-height: 1.7; }
+    main { min-width: 0; padding: 32px 38px 60px; }
+    .topbar { display: flex; justify-content: space-between; gap: 20px; align-items: start; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: 28px; line-height: 1.25; }
+    .subtitle { margin: 7px 0 0; color: var(--muted); }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn { border: 1px solid var(--line); padding: 9px 13px; background: var(--panel); color: var(--ink); border-radius: 4px; }
+    .btn:hover { border-color: #8f9c96; }
+    .btn.primary { background: var(--green); color: white; border-color: var(--green); }
+    .btn.danger { color: var(--red); }
+    .grid { display: grid; gap: 16px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .stat { padding: 18px; border: 1px solid var(--line); background: rgba(255,253,247,.88); box-shadow: var(--shadow); }
+    .stat .label { color: var(--muted); font-size: 12px; }
+    .stat .value { margin-top: 8px; font-size: 26px; font-weight: 800; }
+    .stat .sub { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .progress { height: 6px; background: #e4e5de; margin-top: 11px; overflow: hidden; }
+    .progress span { display: block; height: 100%; background: var(--green); transition: width .25s ease; }
+    .card { border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+    .card-head { padding: 15px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .card-head h2 { font-size: 16px; margin: 0; }
+    .card-body { padding: 18px; }
+    .two { grid-template-columns: minmax(0, 1.6fr) minmax(280px, .9fr); }
+    .gate-list { display: grid; gap: 10px; }
+    .gate { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); background: white; }
+    .gate.locked { background: #f3f2ec; color: #768078; }
+    .gate-num { width: 36px; height: 36px; display: grid; place-items: center; color: white; background: var(--blue); font-weight: 800; }
+    .gate.locked .gate-num { background: #929b96; }
+    .gate-title { font-weight: 700; }
+    .gate-meta { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .pill { display: inline-block; padding: 3px 8px; font-size: 11px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); }
+    .pill.ok { color: var(--green); border-color: #acd1c0; background: #eef8f3; }
+    .pill.warn { color: var(--amber); border-color: #e8c995; background: #fff7e8; }
+    .pill.bad { color: var(--red); border-color: #e0b0aa; background: #fff0ee; }
+    .timeline { display: grid; gap: 8px; }
+    .timeline-row { display: grid; grid-template-columns: 80px 1fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #ecebe4; }
+    .timeline-row:last-child { border-bottom: 0; }
+    .timeline-date { font-weight: 800; color: var(--green); font-size: 12px; }
+    .timeline-title { font-size: 13px; }
+    .timeline-sub { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .section { display: none; }
+    .section.active { display: block; animation: rise .22s ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .chapter-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 18px; }
+    .chapter-nav { display: grid; gap: 7px; }
+    .chapter-btn { width: 100%; text-align: left; border: 1px solid var(--line); background: white; padding: 11px; border-radius: 4px; }
+    .chapter-btn.active { border-color: var(--green); box-shadow: inset 4px 0 var(--green); }
+    .chapter-btn small { display: block; color: var(--muted); margin-top: 4px; }
+    .chapter-detail h2 { margin: 0 0 8px; font-size: 21px; }
+    .chapter-purpose { margin: 0 0 18px; color: var(--muted); }
+    .block-title { margin: 18px 0 8px; color: var(--blue); font-size: 13px; text-transform: uppercase; font-weight: 800; }
+    .checklist { display: grid; gap: 7px; }
+    .check-item { display: grid; grid-template-columns: 20px 1fr auto; gap: 9px; align-items: start; padding: 10px; border: 1px solid var(--line); background: white; }
+    .check-item.done { background: #f0f7f3; }
+    .check-item input { margin-top: 4px; accent-color: var(--green); }
+    .check-item label { line-height: 1.5; }
+    .check-item em { display: block; color: var(--muted); font-style: normal; font-size: 11px; margin-top: 3px; }
+    .metric-table, .task-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .metric-table th, .metric-table td, .task-table th, .task-table td { padding: 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .metric-table th, .task-table th { color: var(--muted); font-size: 11px; }
+    .score-box { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 10px; }
+    input[type=range] { width: 100%; accent-color: var(--green); }
+    .score-value { font-weight: 800; min-width: 36px; text-align: right; }
+    .rubric-row { display: grid; grid-template-columns: 145px 1fr 58px; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #ecebe4; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field { display: grid; gap: 5px; }
+    .field label { color: var(--muted); font-size: 12px; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line); background: white; padding: 9px; border-radius: 3px; color: var(--ink); }
+    .field textarea { min-height: 90px; resize: vertical; }
+    .full { grid-column: 1 / -1; }
+    .notice { padding: 11px 13px; border-left: 4px solid var(--amber); background: #fff7e7; line-height: 1.55; font-size: 13px; }
+    .empty { color: var(--muted); text-align: center; padding: 24px; }
+    .decision-list, .review-list { display: grid; gap: 9px; }
+    .decision { padding: 12px; border: 1px solid var(--line); background: white; }
+    .decision h3 { margin: 0 0 5px; font-size: 14px; }
+    .decision p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .locked-note { border: 1px solid #e4b4af; color: #7f302b; background: #fff1ef; padding: 11px; margin-bottom: 14px; }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .choice { border: 1px solid var(--line); background: white; padding: 14px; text-align: left; min-height: 105px; border-radius: 4px; min-width: 0; overflow-wrap: anywhere; }
+    .choice:hover, .choice.selected { border-color: var(--green); box-shadow: inset 0 0 0 2px var(--green); }
+    .choice strong { display: block; margin-bottom: 6px; }
+    .choice span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .wizard-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 16px; }
+    .wizard-progress span { height: 5px; background: #dddcd3; }
+    .wizard-progress span.done { background: var(--green); }
+    .diagnosis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .diagnosis-item { border: 1px solid var(--line); background: white; padding: 14px; }
+    .diagnosis-item strong { display: block; font-size: 13px; margin-bottom: 5px; }
+    .diagnosis-item .big { font-size: 25px; font-weight: 800; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 76px minmax(0, 1fr); }
+      aside { padding: 20px 10px; }
+      .brand > div, nav button span + span, .aside-foot { display: none; }
+      .brand { justify-content: center; }
+      nav button { justify-content: center; }
+      main { padding: 24px 20px 45px; }
+      .stats, .two { grid-template-columns: 1fr 1fr; }
+      .chapter-layout { grid-template-columns: 1fr; }
+      .chapter-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .shell { display: block; }
+      aside { position: static; height: auto; padding: 10px 14px; }
+      .brand { margin: 0; justify-content: flex-start; }
+      nav { display: flex; overflow-x: auto; margin-top: 8px; }
+      nav button { min-width: 70px; display: block; text-align: center; padding: 8px; border-left: 0; border-bottom: 3px solid transparent; }
+      nav button.active { border-bottom-color: #e9c46a; }
+      .nav-icon { display: block; margin: auto; }
+      main { padding: 20px 14px 40px; }
+      .topbar { display: block; }
+      .controls { justify-content: flex-start; margin-top: 14px; }
+      .stats, .two, .form-grid { grid-template-columns: 1fr; }
+      .chapter-nav, .choice-grid, .diagnosis { grid-template-columns: 1fr; }
+      .wizard-progress { gap: 4px; }
+      .rubric-row { grid-template-columns: 1fr 52px; }
+      .rubric-row .rubric-hint { grid-column: 1 / -1; }
+    }
+
+    /* Academic editorial system: calm workspace, explicit hierarchy, restrained color. */
+    :root {
+      --ink: #17201d;
+      --muted: #65716c;
+      --paper: #f0f1ec;
+      --panel: #fbfcf9;
+      --line: #d9ddd7;
+      --green: #176b4d;
+      --red: #9b3f35;
+      --amber: #a96515;
+      --blue: #315e78;
+      --black: #14221e;
+      --shadow: 0 1px 0 rgba(20, 34, 30, .03), 0 12px 34px rgba(20, 34, 30, .055);
+      --serif: "Noto Serif TC", "PMingLiU", "MingLiU", serif;
+      --sans: "Aptos", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    body {
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(34, 61, 51, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 61, 51, .035) 1px, transparent 1px);
+      background-size: 28px 28px;
+      font-family: var(--sans);
+    }
+    .shell { grid-template-columns: 224px minmax(0, 1fr); }
+    aside {
+      background: #183027;
+      border-right: 1px solid rgba(255,255,255,.08);
+      padding: 24px 18px;
+    }
+    .brand { padding: 0 6px 22px; border-bottom: 1px solid rgba(255,255,255,.13); }
+    .mark {
+      width: 38px; height: 38px; border: 1px solid #d8b968; color: #e6ca7d;
+      font-family: var(--serif); font-weight: 700; background: rgba(255,255,255,.035);
+    }
+    .brand strong { font-family: var(--serif); font-size: 17px; font-weight: 700; }
+    .brand span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    nav { margin-top: 18px; }
+    nav button { border-left: 0; border-radius: 2px; padding: 10px 12px; position: relative; }
+    nav button::after { content: ""; position: absolute; left: 0; top: 50%; width: 3px; height: 0; background: #d8b968; transform: translateY(-50%); transition: height .18s ease; }
+    nav button:hover { background: rgba(255,255,255,.055); color: #fff; }
+    nav button.active { background: rgba(255,255,255,.08); }
+    nav button.active::after { height: 22px; }
+    .nav-icon { color: #dfc477; font-family: var(--serif); }
+    main { padding: 30px 34px 60px; max-width: 1480px; width: 100%; margin: 0 auto; }
+    .topbar { align-items: end; padding-bottom: 22px; border-bottom: 1px solid #cfd5cf; margin-bottom: 22px; }
+    h1 { font-family: var(--serif); font-size: 30px; font-weight: 700; color: #16261f; }
+    .subtitle { font-size: 13px; color: #68736e; line-height: 1.55; }
+    .controls { align-items: center; }
+    .btn { border-radius: 2px; padding: 8px 12px; background: rgba(255,255,255,.72); font-size: 12px; min-height: 35px; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+    .btn:hover { background: #fff; border-color: #85928c; transform: translateY(-1px); }
+    .btn.primary { background: var(--green); }
+    .stats { gap: 10px; }
+    .stat {
+      border: 0; border-top: 3px solid #315f50; border-radius: 0;
+      padding: 15px 17px 14px; background: rgba(251,252,249,.92); box-shadow: none;
+      position: relative;
+    }
+    .stat:nth-child(2) { border-top-color: var(--blue); }
+    .stat:nth-child(3) { border-top-color: var(--amber); }
+    .stat:nth-child(4) { border-top-color: #707b75; }
+    .stat .label { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+    .stat .value { font-family: var(--serif); font-size: 25px; line-height: 1.15; color: #1b2a24; }
+    .stat .sub { line-height: 1.45; }
+    .progress { height: 3px; background: #dfe3dd; margin-top: 12px; }
+    .two { gap: 16px; grid-template-columns: minmax(0, 1.65fr) minmax(300px, .85fr); }
+    .card { border-radius: 0; border: 1px solid var(--line); background: rgba(251,252,249,.96); box-shadow: var(--shadow); }
+    .card-head { padding: 13px 16px; background: #f7f8f4; }
+    .card-head h2 { font-family: var(--serif); font-size: 16px; font-weight: 700; color: #21322b; }
+    .card-body { padding: 16px; }
+    .gate-list { gap: 0; border-top: 1px solid var(--line); }
+    .gate { border: 0; border-bottom: 1px solid var(--line); padding: 13px 10px; grid-template-columns: 34px minmax(0, 1fr) auto; background: transparent; }
+    .gate:hover { background: #f5f7f2; }
+    .gate.locked { background: transparent; color: #8b948f; }
+    .gate-num { width: 28px; height: 28px; border: 1px solid #315e78; color: #315e78; background: transparent; border-radius: 0; font-family: var(--serif); }
+    .gate.locked .gate-num { background: transparent; color: #9aa29e; border-color: #cbd0cc; }
+    .gate-title { font-size: 13px; }
+    .gate-meta { line-height: 1.4; }
+    .pill { border-radius: 2px; font-size: 10px; padding: 3px 7px; font-weight: 700; }
+    .timeline-row { padding: 9px 0; }
+    .timeline-date { font-family: var(--serif); font-size: 11px; }
+    .notice, .locked-note { border-left-width: 3px; border-radius: 0; }
+    .chapter-layout { grid-template-columns: 250px minmax(0, 1fr); }
+    .chapter-nav { gap: 0; border-top: 1px solid var(--line); }
+    .chapter-btn { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: rgba(255,255,255,.55); padding: 12px; }
+    .chapter-btn.active { box-shadow: inset 3px 0 var(--green); background: #fff; }
+    .chapter-detail h2 { font-family: var(--serif); font-size: 23px; }
+    .block-title { color: var(--green); letter-spacing: .08em; font-size: 10px; }
+    .checklist { gap: 0; border-top: 1px solid var(--line); }
+    .check-item { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 11px 9px; background: transparent; }
+    .check-item.done { background: #f2f7f3; }
+    .field label { font-size: 11px; font-weight: 700; letter-spacing: .025em; }
+    .field input, .field select, .field textarea { border-radius: 0; padding: 9px 10px; background: #fff; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid rgba(23,107,77,.16); border-color: var(--green); }
+    .metric-table th { background: #f5f6f2; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+    .metric-table td { line-height: 1.55; }
+    .choice { border-radius: 0; min-height: 116px; padding: 17px; }
+    .choice strong { font-family: var(--serif); font-size: 15px; color: #22342c; }
+    .choice:hover, .choice.selected { box-shadow: none; background: #f1f7f3; }
+    .wizard-progress span { height: 3px; }
+    .diagnosis-item { border-radius: 0; border-top: 3px solid var(--blue); }
+    .diagnosis-item .big { font-family: var(--serif); }
+    .decision { border-radius: 0; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 72px minmax(0, 1fr); }
+      aside { padding: 18px 9px; }
+    }
+    @media (max-width: 900px) {
+      .shell { display: block; }
+      aside { position: static; height: auto; padding: 10px 14px; }
+      nav { margin-top: 8px; padding-bottom: 2px; }
+      nav button { border-radius: 0; }
+      nav button::after { left: 50%; top: auto; bottom: 0; width: 0; height: 3px; transform: translateX(-50%); }
+      nav button.active::after { width: 26px; height: 3px; }
+      main { padding: 22px 14px 40px; }
+      h1 { font-size: 25px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stats .stat .value { font-size: 21px; }
+      .topbar { padding-bottom: 16px; }
+      .card-head { padding: 12px 13px; }
+      .card-body { padding: 13px; }
+    }
+    @media (max-width: 520px) {
+      .stats { grid-template-columns: 1fr; }
+      .controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .btn { width: 100%; }
+      .gate { grid-template-columns: 30px minmax(0, 1fr); }
+      .gate > .pill { grid-column: 2; justify-self: start; margin-top: 4px; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand"><div class="mark">N</div><div><strong>論文指導系統</strong><span>Nice / AIMS / 2027</span></div></div>
+    <nav id="nav"></nav>
+    <div class="aside-foot">離線保存於此瀏覽器<br>不會自動上傳任何資料</div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div><h1 id="pageTitle">進度總覽</h1><p class="subtitle" id="pageSub">下一步、卡關點、階段驗收與評分集中在同一畫面。</p></div>
+      <div class="controls">
+        <button class="btn" id="resetBtn">重設</button>
+        <button class="btn" id="importBtn">匯入 JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button class="btn" id="exportBtn">匯出 JSON</button>
+        <button class="btn primary" id="saveBtn">儲存進度</button>
+      </div>
+    </header>
+
+    <section class="section" id="section-wizard">
+      <div class="card"><div class="card-head"><h2>教授模式：建立新研究</h2><span class="pill" id="wizardStepLabel">步驟 1 / 4</span></div><div class="card-body">
+        <div class="wizard-progress" id="wizardProgress"><span class="done"></span><span></span><span></span><span></span></div>
+        <div class="wizard-step active" data-wizard-step="0">
+          <h2>先辨識你的研究屬於哪一類</h2>
+          <p class="chapter-purpose">教授精靈會依研究類型產生不同的階段、章節契約、方法與評分標準。</p>
+          <div class="choice-grid" id="researchTypeChoices"></div>
+        </div>
+        <div class="wizard-step" data-wizard-step="1">
+          <h2>研究主題與可投入條件</h2>
+          <div class="form-grid">
+            <div class="field"><label>學生姓名</label><input id="wizStudent"></div>
+            <div class="field"><label>指導教授</label><input id="wizAdvisor"></div>
+            <div class="field"><label>學校</label><input id="wizSchool" value="國立清華大學" placeholder="以學校正式名稱填寫"></div>
+            <div class="field"><label>系所／學位學程</label><input id="wizDepartment" placeholder="例如：AIMS 專班"></div>
+            <div class="field"><label>學位層級</label><select id="wizDegree"><option>碩士</option><option>在職碩士</option><option>博士</option><option>學士</option></select></div>
+            <div class="field"><label>入學學年度</label><input id="wizEnrollmentYear" placeholder="例如：115"></div>
+            <div class="field full"><label>暫定題目或研究方向</label><input id="wizTitle" placeholder="請寫你真正想解決的問題，不只寫領域名稱"></div>
+            <div class="field full"><label>核心研究問題</label><textarea id="wizQuestion" placeholder="例如：哪些因素影響 X？或：方法 A 與基準方法對 Y 的效果差異為何？"></textarea></div>
+            <div class="field full"><div class="notice" id="autoTypeHint">輸入題目與問題後，精靈會依關鍵字自動判斷並挑戰研究類型。</div></div>
+            <div class="field"><label>預計完成日期</label><input type="date" id="wizDeadline"></div>
+            <div class="field"><label>每週可投入時數</label><input type="number" id="wizHours" min="1" max="40" value="8"></div>
+          </div>
+        </div>
+        <div class="wizard-step" data-wizard-step="2">
+          <h2>資料可行性判斷</h2>
+          <p class="chapter-purpose">資料不是「有沒有」，而是來源、樣本、權限、標籤、時間與倫理是否足以回答研究問題。</p>
+          <div class="form-grid">
+            <div class="field"><label>主要資料類型</label><select id="wizDataType"><option>公開資料集</option><option>公司／組織資料</option><option>問卷資料</option><option>訪談或質性資料</option><option>實驗資料</option><option>合成資料</option><option>文獻資料</option><option>尚未確定</option></select></div>
+            <div class="field"><label>資料取得狀態</label><select id="wizDataStatus"><option>已取得</option><option>可申請取得</option><option>能自行產生</option><option>尚未取得</option></select></div>
+            <div class="field"><label>預估樣本／文件量</label><input id="wizSample" placeholder="例如 400 筆、30 受訪者、50 篇文獻"></div>
+            <div class="field"><label>資料標籤或分析依據</label><select id="wizLabels"><option>已有明確標籤／已知結果</option><option>需要人工標記或編碼</option><option>不需要標籤</option><option>不確定</option></select></div>
+            <div class="field full"><label>資料權限與限制</label><select id="wizAccess"><option>可完整公開</option><option>僅能呈現聚合／去識別結果</option><option>涉及個資或公司機敏</option><option>需要倫理審查或授權</option><option>尚未確認</option></select></div>
+            <div class="field full"><label>是否涉及人體研究、問卷受試者、訪談、健康或可識別個資？</label><select id="wizHumanSubjects"><option>否</option><option>是</option><option>不確定</option></select></div>
+            <div class="field"><label>學校規定網址（選填）</label><input id="wizInstitutionUrl" placeholder="貼入系所／學校學位考試規定網址"></div>
+            <div class="field"><label>相似度標準（選填）</label><input id="wizSimilarityRule" placeholder="例如：依系所公告；勿自行假設"></div>
+          </div>
+        </div>
+        <div class="wizard-step" data-wizard-step="3">
+          <h2>方法、診斷與建立專案</h2>
+          <div class="form-grid">
+            <div class="field"><label>偏好方法</label><select id="wizMethod"><option>由精靈依研究類型建議</option><option>量化實驗與比較</option><option>統計模型</option><option>問卷與調查</option><option>質性訪談</option><option>個案研究</option><option>系統開發／設計科學</option><option>系統性文獻回顧</option></select></div>
+            <div class="field"><label>教授已確認主題</label><select id="wizAdvisorApproved"><option>已確認</option><option>部分確認</option><option>尚未確認</option></select></div>
+          </div>
+          <div class="block-title">精靈初診</div><div class="diagnosis" id="wizardDiagnosis"></div>
+          <div class="notice" style="margin-top:14px">建立新專案會依目前研究類型替換階段、章節契約、指標與評分，並重新計算日期；你可先匯出目前專案後再建立。</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px"><button class="btn" id="wizPrev">上一步</button><button class="btn primary" id="wizNext">下一步</button></div>
+      </div></div>
+    </section>
+
+    <section class="section active" id="section-dashboard">
+      <div class="grid stats" id="stats"></div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><div class="card-head"><h2>階段閘門</h2><span class="pill" id="nextGate"></span></div><div class="card-body"><div class="gate-list" id="gateList"></div></div></div>
+        <div class="grid">
+          <div class="card"><div class="card-head"><h2>近期里程碑</h2><span class="pill">至 2027-07</span></div><div class="card-body timeline" id="timeline"></div></div>
+          <div class="card"><div class="card-head"><h2>本週唯一目標</h2></div><div class="card-body"><div class="notice" id="weeklyGoal"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-stages">
+      <div class="chapter-layout">
+        <div class="chapter-nav" id="stageNav"></div>
+        <div class="card chapter-detail"><div class="card-body" id="stageDetail"></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-chapters">
+      <div class="chapter-layout">
+        <div class="chapter-nav" id="chapterNav"></div>
+        <div class="card chapter-detail"><div class="card-body" id="chapterDetail"></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-decisions">
+      <div class="grid two">
+        <div class="card"><div class="card-head"><h2>老師指導決策</h2><span class="pill" id="decisionCount"></span></div><div class="card-body decision-list" id="decisionList"></div></div>
+        <div class="card"><div class="card-head"><h2>新增決策紀錄</h2></div><div class="card-body form-grid">
+          <div class="field full"><label>待決議題</label><input id="decisionTopic" placeholder="例如：Baseline B 採哪種符合度方法"></div>
+          <div class="field full"><label>背景／建議</label><textarea id="decisionContext" placeholder="提供老師知道的選項、限制與建議，不只寫一句問題。"></textarea></div>
+          <div class="field"><label>負責人</label><select id="decisionOwner"><option>王宏鍇教授</option><option>Nice</option><option>共同確認</option></select></div>
+          <div class="field"><label>狀態</label><select id="decisionStatus"><option>待確認</option><option>已確認</option><option>暫緩</option></select></div>
+          <div class="field full"><label>結論／引用位置</label><textarea id="decisionResult" placeholder="會議後填寫明確結論、日期及文件位置。"></textarea></div>
+          <div class="full"><button class="btn primary" id="addDecision">新增決策</button></div>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-taiwan">
+      <div class="grid two">
+        <div class="card"><div class="card-head"><h2>台灣學位制度合規</h2><span class="pill" id="taiwanComplianceStatus"></span></div><div class="card-body"><div class="notice">本系統以台灣碩博士制度為預設，但每校、每系及入學年度可能不同。以學校官方當年度規定為準；此頁不能取代教務處、系所或研究倫理委員會公告。</div><div class="checklist" id="taiwanChecklist" style="margin-top:14px"></div></div></div>
+        <div class="card"><div class="card-head"><h2>學校制度設定</h2></div><div class="card-body form-grid" id="institutionProfile"></div></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-scores">
+      <div class="grid two">
+        <div class="card"><div class="card-head"><h2>論文成熟度評分</h2><span class="pill" id="overallScore"></span></div><div class="card-body" id="rubric"></div></div>
+        <div class="card"><div class="card-head"><h2>評分規則</h2></div><div class="card-body">
+          <div class="notice">分數只是風險儀表板，不等於正式成績。任一關鍵項低於 60，或有未決決策、未驗證主張，系統會維持「不可投稿」狀態。</div>
+          <table class="metric-table" style="margin-top:12px"><thead><tr><th>分數</th><th>解讀</th></tr></thead><tbody>
+            <tr><td>90–100</td><td>可投稿，證據完整，限制明確。</td></tr>
+            <tr><td>80–89</td><td>可進入終稿審查，仍有可辨識缺口。</td></tr>
+            <tr><td>70–79</td><td>可做完整實驗，但不宜投稿競賽。</td></tr>
+            <tr><td>60–69</td><td>方法或資料仍有核心風險。</td></tr>
+            <tr><td>&lt; 60</td><td>退回前一階段，禁止跨章。</td></tr>
+          </tbody></table>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-metrics">
+      <div class="card"><div class="card-head"><h2>指標定義與門檻</h2><span class="pill">每個數值都要有來源</span></div><div class="card-body" id="metricTable"></div></div>
+    </section>
+
+    <section class="section" id="section-reviews">
+      <div class="grid two">
+        <div class="card"><div class="card-head"><h2>修改與範圍紀錄</h2></div><div class="card-body review-list" id="reviewList"></div></div>
+        <div class="card"><div class="card-head"><h2>新增變更</h2></div><div class="card-body form-grid">
+          <div class="field"><label>章節／範圍</label><select id="reviewArea"><option>整體範圍</option><option>第一章</option><option>第二章</option><option>第三章</option><option>第四章</option><option>第五章</option><option>實驗</option><option>投稿</option></select></div>
+          <div class="field"><label>提出者</label><select id="reviewSource"><option>王教授</option><option>口試／評審</option><option>Nice 自檢</option></select></div>
+          <div class="field full"><label>原始問題／意見</label><textarea id="reviewIssue"></textarea></div>
+          <div class="field full"><label>處理方式／證據位置</label><textarea id="reviewAction"></textarea></div>
+          <div class="field"><label>狀態</label><select id="reviewStatus"><option>待處理</option><option>處理中</option><option>已完成</option><option>不採用（附理由）</option></select></div>
+          <div class="field"><label>是否影響範圍</label><select id="reviewScope"><option>否</option><option>是</option></select></div>
+          <div class="full"><button class="btn primary" id="addReview">新增紀錄</button></div>
+        </div></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const NICE_MIGRATION = new URLSearchParams(location.search).get('mode') === 'nice';
+const STORAGE_VERSION = 3;
+const STORAGE_KEY = 'thesis-guidance-workspace-v3';
+const LEGACY_NICE_STORAGE_KEYS = ['nice-thesis-guidance-v2','nice-thesis-guidance-v1'];
+const LEGACY_UNIVERSAL_STORAGE_KEYS = ['thesis-guidance-universal-v2','thesis-guidance-universal-v1'];
+const NICE_PROJECT = {source:'nice-migration',type:'design',country:'台灣',school:'國立清華大學',department:'AIMS 在職專班',degree:'在職碩士',enrollmentYear:'115',institutionUrl:'https://registra.site.nthu.edu.tw/p/404-1211-274244.php?Lang=zh-tw',institutionCheckedAt:'2026-11-21',institutionRuleVersion:'115 學年度在職專班規定（待逐項確認）',similarityRule:'依 AIMS／系所當年度公告',humanSubjects:'否',student:'Nice',advisor:'王宏鍇',title:'多來源電子組裝製造事件之資料品質框架及其對生產履歷可信度之影響',question:'如何辨識缺漏、重複、錯序及關聯衝突，並量化履歷可信度？',deadline:'2027-07-15',hours:10,dataType:'公開資料集',dataStatus:'能自行產生',sample:'合成資料＋公開事件資料',labels:'已有明確標籤／已知結果',access:'僅能呈現聚合／去識別結果',method:'系統開發／設計科學',advisorApproved:'已確認'};
+const sectionInfo = {
+  wizard: ['教授精靈', '辨識研究類型、資料可行性及方法，建立專屬論文路線。', '✦'],
+  dashboard: ['進度總覽', '下一步、卡關點、階段驗收與評分集中在同一畫面。', '⌂'],
+  stages: ['階段閘門', '每階段必須完成輸入、輸出與驗收，才可進入下一階段。', '▦'],
+  chapters: ['章節契約', '各章明確定義應回答的問題、必備證據與禁止內容。', '§'],
+  decisions: ['老師指導', '待決事項、決議內容與後續責任人集中管理。', '◇'],
+  taiwan: ['台灣制度', '學倫、格式、學位考試、電子論文與離校合規。', '台'],
+  scores: ['論文評分', '以六大評分維度判斷可否進階、口試或投稿。', '★'],
+  metrics: ['指標字典', '每個指標都固定公式、用途、輸入與最低證據。', '∑'],
+  reviews: ['修改紀錄', '保存所有範圍修改、教授建議、處理方式與完成證據。', '↻']
+};
+let stages = [
+  {id:'s0', title:'方向凍結', date:'2026-11-30', purpose:'確認唯一研究主張、RQ、異常與資料邊界。', outputs:['研究定案','老師會議紀錄','研究範圍與主張邊界'], checks:['教授明確同意主方向','RQ 僅兩題且可回答','四類異常定義沒有重疊','Baseline A／B 名稱已確認','公司資料不作必要條件'], advisor:'確認題目、兩個基準、可信度輸出與公開資料數量。'},
+  {id:'s1', title:'文獻與缺口', date:'2026-12-20', purpose:'以近期文獻界定已知、方法、缺口及可辯護主張。', outputs:['30–50 篇書目','15–20 篇編碼','研究缺口一頁稿'], checks:['每篇有研究問題與資料','每類異常至少有文獻依據','基準方法可說明來源','缺口不用「沒人做」','公版隱私與資料限制已涵蓋'], advisor:'確認缺口是否夠強，避免把成熟方法誤稱首次提出。'},
+  {id:'s2', title:'資料模型', date:'2027-01-20', purpose:'建立通用事件資料模型與可重現正常資料。', outputs:['資料字典','抽象流程圖','1,000–5,000 筆正常履歷','生成設定檔'], checks:['固定種子可重現','合法直通與重工可區分','資料生成器不讀檢測規則','所有必要欄位都有定義','不對應真實公司流程'], advisor:'核准資料粒度、合法重工與抽象場域描述。'},
+  {id:'s3', title:'異常與真值', date:'2027-02-10', purpose:'建立不被檢測器讀取的真值與控制式異常注入。', outputs:['四類異常注入器','anomaly_truth','異常設定檔','注入抽樣報告'], checks:['單一異常可獨立注入','真值只由評估模組讀取','抽樣 100% 符合指定類型','混合異常可定位','1%、5%、10% 設定可重現'], advisor:'確認異常分類與合法例外的邊界。'},
+  {id:'s4', title:'方法框架', date:'2027-03-10', purpose:'公平建立兩個基準及整合資料品質框架。', outputs:['Baseline A','Baseline B','Proposed','規則規格表','原因碼字典'], checks:['三方法使用相同輸入','每個警示可解釋','正常資料誤報已檢查','關聯欄位缺席標示 N/A','未使用異常真值調參'], advisor:'決定方法比較是否公平、可信度是分項還是綜合。'},
+  {id:'s5', title:'控制實驗', date:'2027-04-10', purpose:'用多情境與重複實驗回答 RQ2。', outputs:['E1–E4 結果','混淆矩陣','逐類 F1','95% CI','誤報漏報案例'], checks:['每設定至少 20 次重複','報告平均值與變異','逐類與整體結果都有','保留負面結果','圖表可追溯至結果檔'], advisor:'確認是否需要補實驗，而不是只追較高分數。'},
+  {id:'s6', title:'外部驗證', date:'2027-04-30', purpose:'證明方法不只適用於自己的資料生成器。', outputs:['公開資料說明','欄位轉換表','外部驗證結果','外部效度限制'], checks:['至少一組公開資料','來源與授權已記錄','不適用規則不造資料','使用相同評估方式','差異來源已分析'], advisor:'確認公開資料數量及外部效度宣稱範圍。'},
+  {id:'s7', title:'管理意涵', date:'2027-05-20', purpose:'將技術結果轉為可信度分類與查核優先序。', outputs:['可信度分類','權重敏感度','查核優先序情境','口試防禦表'], checks:['不宣稱真實效益','每個管理主張有證據','權重敏感度已測','保留不確定案例','導入步驟可解釋'], advisor:'確認管理主張、可信度分類與競賽定位。'},
+  {id:'s8', title:'論文定稿', date:'2027-07-15', purpose:'完成 RQ 對齊、五章、口試與投稿底稿。', outputs:['五章正文','摘要','PDF','口試簡報','答辯手冊'], checks:['RQ 在一、三、四、五章一致','圖表來源可追溯','限制先於推論','格式與引用通過','保密檢查通過'], advisor:'逐章審查，不一次交完整初稿。'},
+  {id:'s9', title:'投稿延伸', date:'2027-09-30', purpose:'依不同受眾改寫完整論文、研討會及期刊稿。', outputs:['崇越版本','研討會版本','期刊版本','重複投稿檢查'], checks:['官方簡章已確認','各版本不是原封不動','作者與指導教授授權確認','保密及版權確認','投稿清單可追溯'], advisor:'決定投稿順序、共同作者與揭露範圍。'}
+];
+let chapters = [
+  {title:'第一章 緒論', goal:'說清楚問題、目的、RQ、範圍與研究流程。', must:['背景從智慧製造資料可靠性切入，不從公司經驗起手','問題陳述只指向履歷資料品質','明確兩個 RQ 與可回答的預期輸出','列出不研究良率、故障、排程、深度學習','研究限制與資料策略提前說明'], evidence:['研究定案 v1','一頁研究流程圖','主張邊界表'], blocked:'沒有完成階段 0，不得開始本章。'},
+  {title:'第二章 文獻探討', goal:'建立已知、理論缺口與方法選擇理由。', must:['事件日誌品質、流程符合度、異常偵測各自綜整','製造事件應用與隱私／去識別文獻要有','每項異常定義有文獻依據或明確延伸','基準方法與評估指標有來源','缺口不是「沒人做」，而是整合與情境缺口'], evidence:['30–50 篇書目','15–20 篇編碼','研究缺口矩陣'], blocked:'核心文獻未滿 15 篇或異常定義無依據，不得定稿。'},
+  {title:'第三章 研究方法', goal:'讓另一人可重現資料、方法、實驗與評估。', must:['事件資料模型與資料字典完整','生成器、注入器、偵測器、評估器分離','Baseline A、B、Proposed 公平比較','合法重工與不適用規則明確','種子、比例、重複次數、統計處理完整'], evidence:['資料字典','規則規格表','config 檔','假設與指標公式'], blocked:'生成器或真值隔離未驗證，不得宣稱實驗可重現。'},
+  {title:'第四章 實驗結果', goal:'只用證據回答 RQ，呈現正負結果與限制。', must:['先描述資料，再報告結果','逐類異常、混合異常、外部資料皆有','至少報告均值、變異或信賴區間','誤報／漏報案例不得省略','負面結果與方法適用情境明示'], evidence:['原始結果 CSV','混淆矩陣','逐類比較表','案例與敏感度圖'], blocked:'任何圖表沒有結果檔來源，就不得加入正式章節。'},
+  {title:'第五章 結論', goal:'精準回答 RQ，區分貢獻、限制與管理意涵。', must:['RQ1、RQ2 各用一段直接回答','貢獻不超出第四章證據','管理效益使用情境或實驗，不稱公司成果','限制包含合成資料、外部效度與未納異常','未來研究不得挽救本研究未完成的核心'], evidence:['RQ 回答對照','貢獻證據表','限制與未來研究表'], blocked:'第四章結果未定稿，不得先完成第五章結論。'}
+];
+let metrics = [
+  ['Precision','TP/(TP+FP)','被標記異常中，真正異常的比例','每類、整體','辨識誤報成本'],
+  ['Recall','TP/(TP+FN)','真正異常被找出的比例','每類、整體','辨識漏報風險'],
+  ['F1-score','2PR/(P+R)','Precision 與 Recall 的調和平均','每類、整體、各情境','主要模型比較指標'],
+  ['定位正確率','正確事件定位數/正確檢出數','不只判斷產品異常，還能指出事件位置','每類、每方法','診斷能力'],
+  ['規則覆蓋率','觸發規則的真異常/全部真異常','真值異常是否至少被一條規則涵蓋','每類','辨識規則缺口'],
+  ['可信度完整性','有效必要事件數/必要事件數','履歷是否包含必要事件與欄位','每筆履歷','RQ1 品質維度'],
+  ['可信度唯一性','1-重複事件數/總事件數','事件與關聯是否無不合理重複','每筆履歷','RQ1 品質維度'],
+  ['時序一致性','正確事件轉換數/可檢驗轉換數','事件先後與流程限制是否一致','每筆履歷','RQ1 品質維度'],
+  ['關聯一致性','正確關聯數/檢查關聯數','產品、零件、事件連結是否一致','每筆履歷；N/A 需揭露','RQ1 品質維度'],
+  ['查核覆蓋縮減','未標記履歷數/全部履歷數','假設只複核警示項目可縮小多少範圍','情境分析','管理意涵，不得稱真實成本']
+];
+let rubricDefs = [
+  ['範圍清晰度',20,'RQ、納入／排除與主張邊界是否一致'],
+  ['文獻與新穎性',15,'缺口能否被近期文獻支持且不誇大'],
+  ['方法嚴謹度',20,'生成、注入、偵測、評估是否分離且公平'],
+  ['實驗與結果',20,'重複、外部驗證、統計及負面結果是否完整'],
+  ['管理與實務價值',15,'可信度與查核結果能否支持管理決策'],
+  ['寫作與投稿適配',10,'RQ、圖表、引用、保密與競賽主軸是否一致']
+];
+const niceTemplate = {stages: JSON.parse(JSON.stringify(stages)), chapters: JSON.parse(JSON.stringify(chapters)), metrics: JSON.parse(JSON.stringify(metrics)), rubric: JSON.parse(JSON.stringify(rubricDefs))};
+const researchTypes = {
+  quantitative: {
+    name:'量化實驗／資料分析', desc:'有可量測變數、模型比較、預測或因果推論。',
+    methods:['實驗設計','次資料分析','機器學習比較','統計模型','準實驗'],
+    metrics:[['效果量','依方法採 r、d、OR 或 RMSE','量化實際差異大小','整體與分組','避免只報 p-value'],['信賴區間','estimate ± critical value × SE','表示估計不確定性','主要結果','須說明水準與假設'],['模型指標','依任務採 AUC、F1、MAE、R²','比較預測或分類效果','驗證集與測試集','禁止用測試集調參']],
+    stageChecks:['資料來源、單位與樣本可回答 RQ','缺失、重複、洩漏及分組處理完成','假設與樣本量依據已確認','訓練／驗證／測試或估計策略固定','結果含效果量、不確定性與穩健性'],
+    chapter3:'定義變數、資料、樣本、基準、假設檢定、模型與資料洩漏防護。',
+    risks:['資料洩漏','樣本不足','多重檢定','只報顯著性','訓練集與測試集混用']
+  },
+  survey: {
+    name:'問卷／統計研究', desc:'以受試者回應衡量構念、關聯或調節效果。',
+    methods:['因素分析','多元迴歸','SEM／PLS-SEM','ANOVA／MANOVA','調節中介分析'],
+    metrics:[['Cronbach alpha','共同變異一致性','初步信度','各量表','不可單獨證明效度'],['AVE','Σλ²/(Σλ²+Σ誤差)','收斂效度','潛在構念','配合 CR 與負荷量'],['HTMT','不同構念相關估計比率','區辨效度','構念兩兩比較','需說明門檻'],['VIF','1/(1-R²)','共線性檢查','預測變項','不得忽略高 VIF']],
+    stageChecks:['構念與操作型定義一一對應','量表來源及授權已確認','樣本與檢定力分析完成','前測／專家效度及填答設計完成','共同方法變異與遺漏值策略固定'],
+    chapter3:'說明母體、抽樣、量表來源、題項、前測、信效度、模型及 CMV。',
+    risks:['樣本不足','量表拼貼','X 與 Y 題項重疊','共同方法變異','直接用未驗證量表']
+  },
+  qualitative: {
+    name:'質性訪談／田野', desc:'透過訪談、觀察或文本理解脈絡與機制。',
+    methods:['主題分析','扎根理論','內容分析','詮釋現象學','多重案例'],
+    metrics:[['編碼一致性','一致編碼數/檢核單位','交叉編碼可靠度','子集文本','不能只報同意百分比'],['理論飽和','新增資料不產生新主題','抽樣停止依據','全樣本','需記錄未出現新碼'],['軌跡可追溯度','逐字稿→碼→主題→主張','證據鏈完整性','每個主題','必須保留負面案例']],
+    stageChecks:['研究場域與受訪者選樣理由明確','訪談大綱及倫理同意完成','逐字稿與匿名規則固定','編碼架構及反身性記錄建立','飽和、三角與負面案例分析完成'],
+    chapter3:'定義場域、選樣、資料蒐集、逐字稿、編碼、飽和、信實性與研究者反身性。',
+    risks:['只摘錄支持自己觀點的句子','樣本選擇偏誤','編碼者偏誤','匿名不足','沒有負面案例']
+  },
+  case: {
+    name:'管理／個案研究', desc:'以單一或多重個案分析真實問題與管理機制。',
+    methods:['單案研究','多重個案比較','過程追蹤','案例敘事分析','混合案例'],
+    metrics:[['證據三角','資料來源種類及吻合度','降低單一來源偏誤','每個主張','至少說明兩種來源'],['分析性推論','案例主題連結既有理論','理論／框架貢獻','命題與主題','不可直接外推母體'],['介入效益證據','前後指標或訪談佐證','案例變化','實務成果','不可虛構成本或績效']],
+    stageChecks:['案例選擇理由及研究單位固定','資料來源與存取權限確認','案例時間線與事件證據建立','跨來源三角及反證機制完成','分析性推論與外部效度界線完成'],
+    chapter3:'說明案例選擇、邊界、資料來源、時間線、訪談、檔案、三角及分析程序。',
+    risks:['單一來源敘事','案例等同母體','事後合理化','敏感資訊外洩','利益衝突']
+  },
+  design: {
+    name:'系統／設計科學', desc:'提出框架、工具或系統並透過反覆設計與評估。',
+    methods:['設計科學研究','原型與實驗','人機互動評估','工程驗證','設計反覆'],
+    metrics:[['功能覆蓋','完成需求數/必要需求數','系統是否達成需求','每個需求','不能只用完成畫面證明'],['任務成功率','成功完成任務數/任務數','可用性與效果','使用者任務','需操作情境'],['可重現性','固定輸入可重建相同輸出','方法可靠性','程式與實驗','需版本、設定與種子']],
+    stageChecks:['使用者需求與設計目標明確','構念與系統需求對應','原型、評估準則與基準固定','功能測試與使用者／效能評估分離','設計原理與可移植性完成'],
+    chapter3:'定義設計科學週期、需求、構念、原型、評估準則、基準及反覆修正。',
+    risks:['只交付程式無研究貢獻','自己定義需求自己驗證','沒有基準','介面漂亮但任務失敗','不可重現']
+  },
+  review: {
+    name:'系統性文獻回顧', desc:'以明確檢索與篩選程序回答文獻問題並形成綜整。',
+    methods:['PRISMA','範疇回顧','整合型回顧','後設分析','配置型回顧'],
+    metrics:[['納入率','納入文獻數/全文評估數','篩選透明度','PRISMA 各階段','保留排除原因'],['編碼一致性','一致編碼數/抽樣文獻數','雙人或二次編碼可信度','交叉編碼子集','須有不一致處理方式'],['主題涵蓋','主題數、文獻數及缺口','綜整完整性','主題矩陣','不要只用頻率代替洞見']],
+    stageChecks:['回顧問題與納入排除條件固定','資料庫、字串、日期與筆數可重現','去重、篩選及排除理由完整','品質評估與編碼表完成','綜整、缺口及未來研究有證據'],
+    chapter3:'寫清檢索字串、資料庫、時間範圍、PRISMA、品質評估、編碼與綜整策略。',
+    risks:['檢索不可重現','只搜尋一個資料庫','篩選理由缺失','用不合格文獻充數','把摘要當完整分析']
+  }
+};
+function offsetDate(deadline, weight){ const end=new Date(deadline); if(Number.isNaN(end.getTime())) return '待設定'; const start=new Date(); const days=Math.max(30,Math.floor((end-start)/86400000)); const d=new Date(start.getTime()+Math.floor(days*weight)*86400000); return d.toISOString().slice(0,10); }
+function buildProject(profile){
+  const type=researchTypes[profile.type];
+  const end=profile.deadline || new Date(Date.now()+240*86400000).toISOString().slice(0,10);
+  stages=[
+    {id:'s0',title:'方向與問題凍結',date:offsetDate(end,.08),purpose:'辨識研究類型、RQ、範圍與教授決策。',outputs:['研究定案','研究類型判斷','範圍與倫理邊界'],checks:['題目描述一個可研究問題','研究類型與方法初步一致','RQ 可由可得資料回答','納入與排除範圍明確','指導教授已確認方向','學校、系所、入學年度及學位程序已確認'],advisor:'確認研究類型、RQ、資料邊界與方法。'},
+    {id:'s1',title:'文獻與缺口',date:offsetDate(end,.20),purpose:'以近期文獻形成成熟背景與可辯護缺口。',outputs:['書目','核心編碼','缺口矩陣'],checks:['核心文獻涵蓋問題、方法與指標','方法選擇有依據','研究缺口不宣稱完全沒人做','相近研究限制已掌握','引用資料可查核'],advisor:'確認缺口、理論與方法定位。'},
+    {id:'s2',title:'資料與倫理',date:offsetDate(end,.31),purpose:'確認資料可得、樣本、權限、標籤與倫理。',outputs:['資料可行性報告','資料字典','權限或倫理文件'],checks:['資料來源與樣本已確認','資料足以回答每個 RQ','權限與去識別規則完成','資料限制已列入研究限制','抽樣或資料處理策略固定'],advisor:'判斷資料是否足以支持題目及對外公開。'},
+    {id:'s3',title:'方法與規格',date:offsetDate(end,.43),purpose:'固定研究方法、變項、流程、基準與評估。',outputs:['方法協定','操作型定義','分析計畫'],checks:[type.stageChecks[0],type.stageChecks[1],'方法與研究問題一致','基準或比較條件公平','評估指標與成功門檻固定'],advisor:'確認方法與必要基準，不允許後見之明調參。'},
+    {id:'s4',title:'試驗與品質檢查',date:offsetDate(end,.52),purpose:'先用小規模試驗找出資料或方法缺陷。',outputs:['試驗報告','品質問題清單','修正紀錄'],checks:[type.stageChecks[2],type.stageChecks[3],'試驗結果不直接混入正式結果','資料或流程問題已修正','教授確認可進正式研究'],advisor:'決定是否放行正式蒐集或分析。'},
+    {id:'s5',title:'正式分析',date:offsetDate(end,.66),purpose:'依預先固定方法執行主要分析。',outputs:['分析程式或紀錄','主要結果表','統計／質性證據'],checks:[type.stageChecks[4],'主要分析可重現','完整報告正負結果','每個 RQ 有直接證據','無未核准的事後修改'],advisor:'核准是否需要補分析及結果宣稱。'},
+    {id:'s6',title:'穩健與外部驗證',date:offsetDate(end,.75),purpose:'檢查替代設定、偏誤與外部效度。',outputs:['穩健性分析','負面案例','限制矩陣'],checks:['至少一種替代或敏感度分析完成','偏誤及限制已檢查','結果不只取最佳情境','負面／反例保留','外部效度宣稱有邊界'],advisor:'確認結果結論及可外推範圍。'},
+    {id:'s7',title:'貢獻與實務價值',date:offsetDate(end,.83),purpose:'將方法結果轉成學術、理論或管理貢獻。',outputs:['貢獻矩陣','管理意涵','限制與後續研究'],checks:['每項貢獻對應證據','實務建議有可行前提','不虛構公司或母體效益','限制先於外推','研究價值可用一句話表達'],advisor:'確認競賽、投稿與實務表述。'},
+    {id:'s8',title:'五章定稿與口試',date:end,purpose:'完成五章、口試及保密／格式審查。',outputs:['五章全文','摘要','口試簡報','答辯手冊'],checks:['RQ 在第一、三、四、五章一致','圖表與數字可追溯','引用與格式通過','保密、倫理及版權完成','台灣學位制度合規頁全部完成','逐章評分均達及格'],advisor:'逐章審查，不一次交整本。'},
+    {id:'s9',title:'投稿延伸',date:end,purpose:'依正式簡章轉化競賽、研討會及期刊版本。',outputs:['投稿版本','簡章檢查','重複投稿清單'],checks:['目標場域與研究相符','官方簡章已核對','不同版本有實質改寫','教授與共同作者授權','保密與版權通過'],advisor:'決定投稿順序與共同作者。'}
+  ];
+  chapters=[
+    {title:'第一章 緒論',goal:'界定研究問題、目的、RQ、範圍與限制。',must:['研究背景由問題而不是個人經驗展開','RQ 可回答且彼此不重複','納入、排除與資料邊界清楚','方法與研究類型相容','限制與倫理及時程風險提前揭露'],evidence:['研究定案','研究流程圖','範圍表'],blocked:'階段 0 未完成，不得定稿。'},
+    {title:'第二章 文獻探討',goal:'綜整已知、理論、方法、限制與缺口。',must:['核心研究脈絡完整','方法與指標有近期文獻','相近研究優缺點已比較','缺口不誇大為沒人做','研究模型或框架可追溯文獻'],evidence:['書目','編碼表','缺口矩陣'],blocked:'文獻與缺口階段未完成，不得定稿。'},
+    {title:'第三章 研究方法',goal:type.chapter3,must:['母體、樣本或案例邊界明確','資料取得與倫理流程可重現','方法、變項、基準及限制一致','評估指標與門檻預先固定','偏誤與替代解釋已規劃'],evidence:['方法協定','資料字典','分析計畫','倫理／授權'],blocked:'方法與資料階段未通過，不得宣稱可重現。'},
+    {title:'第四章 結果與分析',goal:'依 RQ 報告完整證據、負面結果與穩健性。',must:['先報資料品質與樣本特性','所有 RQ 有直接結果','主要指標含不確定性或證據強度','負面結果與反例保留','替代分析及限制交代'],evidence:['原始結果','圖表來源','敏感度／穩健性','反例'],blocked:'正式分析與外部驗證未完成，不得下結論。'},
+    {title:'第五章 結論與建議',goal:'直接回答 RQ，區分貢獻、限制、管理意涵與後續研究。',must:['逐題回答 RQ','貢獻不超出結果證據','理論與實務意涵分開','限制先於外推','後續研究不取代未完成核心'],evidence:['RQ 回答對照','貢獻證據表','限制表'],blocked:'第四章未完成，不得先定稿。'}
+  ];
+  metrics=type.metrics;
+  rubricDefs=[['範圍清晰度',20,'RQ、範圍、資料與研究類型是否一致'],['文獻與理論',15,'缺口及理論或方法依據是否充分'],['方法嚴謹度',25,'資料、抽樣、分析及偏誤控制是否可重現'],['結果與穩健性',20,'RQ、負面結果與替代分析是否完整'],['貢獻與實務價值',12,'理論、管理或設計貢獻是否有證據'],['寫作與投稿適配',8,'章節、引用、倫理、格式與受眾是否一致']];
+  return type;
+}
+let state = loadState();
+if(state.project && researchTypes[state.project.type] && state.project.source !== 'nice-migration') buildProject(state.project);
+let activeSection = state.project ? 'dashboard' : 'wizard';
+let activeStage = 0;
+let activeChapter = 0;
+let wizardStep = 0;
+let selectedResearchType = '';
+function defaultState(project=null){
+  const isNice = project?.source === 'nice-migration';
+  const initialChecks = isNice ? {'s0-0':true, 's0-1':true, 's0-2':true, 's0-4':true} : {};
+  const initialEvidence = isNice ? {'s0-0':'00_管理/研究定案.md；王教授已同意主方向','s0-1':'00_管理/研究定案.md；RQ1／RQ2 v1','s0-2':'00_管理/研究範圍與主張邊界.md','s0-4':'00_管理/研究定案.md；公司資料不作必要條件'} : {};
+  const initialDecisions = isNice ? [{topic:'Baseline A 與 Baseline B 正式名稱',context:'目前建議：Baseline A 採完整性／唯一性；Baseline B 採流程或時間順序符合度。',owner:'王宏鍇教授',status:'待確認',result:'',date:'2026-11-21'},{topic:'履歷可信度是否需要綜合分數',context:'建議先分報完整性、唯一性、時序與關聯四維度；只有必要時才加入綜合分數並做權重敏感度。',owner:'王宏鍇教授',status:'待確認',result:'',date:'2026-11-21'},{topic:'公開事件資料數量',context:'預設至少一組外部資料；若老師要求更強外部效度，再增加第二組。',owner:'王宏鍇教授',status:'待確認',result:'',date:'2026-11-21'}] : [];
+  return {version:STORAGE_VERSION, stage:0, project, checks:initialChecks, evidence:initialEvidence, chapterChecks:{}, chapterScores:{}, scores:Object.fromEntries(rubricDefs.map((r,i)=>['r'+i, isNice?65:50])), decisions:initialDecisions, reviews:[]};
+}
+function clampScore(value, fallback=50){ const n=Number(value); return Number.isFinite(n)?Math.max(0,Math.min(100,n)):fallback; }
+function normalizeState(raw){
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('狀態必須是物件');
+  const rawProject = raw.project && typeof raw.project === 'object' && researchTypes[raw.project.type] ? raw.project : null;
+  const projectInput = rawProject?.source === 'nice-migration' ? {...NICE_PROJECT,...rawProject} : rawProject;
+  const project = projectInput ? {
+    source:String(projectInput.source||'').slice(0,50),type:projectInput.type,country:'台灣',school:String(projectInput.school||'').slice(0,100),department:String(projectInput.department||'').slice(0,100),degree:String(projectInput.degree||'碩士').slice(0,30),enrollmentYear:String(projectInput.enrollmentYear||projectInput.academicYear||'').slice(0,20),institutionUrl:String(projectInput.institutionUrl||'').slice(0,500),institutionCheckedAt:String(projectInput.institutionCheckedAt||'').slice(0,20),institutionRuleVersion:String(projectInput.institutionRuleVersion||'').slice(0,200),similarityRule:String(projectInput.similarityRule||'依系所公告').slice(0,200),humanSubjects:String(projectInput.humanSubjects||'不確定').slice(0,20),
+    student:String(projectInput.student||'').slice(0,100),advisor:String(projectInput.advisor||'').slice(0,100),title:String(projectInput.title||'').slice(0,500),question:String(projectInput.question||'').slice(0,2000),deadline:String(projectInput.deadline||'').slice(0,20),hours:clampScore(projectInput.hours,8),dataType:String(projectInput.dataType||'').slice(0,100),dataStatus:String(projectInput.dataStatus||'').slice(0,100),sample:String(projectInput.sample||'').slice(0,100),labels:String(projectInput.labels||'').slice(0,100),access:String(projectInput.access||'').slice(0,100),method:String(projectInput.method||'').slice(0,100),advisorApproved:String(projectInput.advisorApproved||'').slice(0,100),diagnosis:projectInput.diagnosis&&typeof projectInput.diagnosis==='object'?{score:clampScore(projectInput.diagnosis.score,50),feasibility:String(projectInput.diagnosis.feasibility||'高風險').slice(0,30),warnings:Array.isArray(projectInput.diagnosis.warnings)?projectInput.diagnosis.warnings.map(x=>String(x).slice(0,300)).slice(0,20):[],requiredHours:Number(projectInput.diagnosis.requiredHours)||0,availableHours:Number(projectInput.diagnosis.availableHours)||0,minimumSample:Number(projectInput.diagnosis.minimumSample)||0}:null
+  } : null;
+  const base=defaultState(project);
+  const checks={}; const evidence={}; const chapterChecks={}; const chapterScores={}; const scores={};
+  if(raw.checks && typeof raw.checks === 'object' && !Array.isArray(raw.checks)) Object.entries(raw.checks).forEach(([k,v])=>{if(/^(s\d+-\d+|tw-\d+)$/.test(k)&&typeof v==='boolean')checks[k]=v;});
+  if(raw.evidence && typeof raw.evidence === 'object' && !Array.isArray(raw.evidence)) Object.entries(raw.evidence).forEach(([k,v])=>{if(/^(s|ch)-?\d+(?:-\d+)?$|^tw-\d+$/.test(k)&&typeof v==='string')evidence[k]=v.slice(0,1000);});
+  if(raw.chapterChecks && typeof raw.chapterChecks === 'object' && !Array.isArray(raw.chapterChecks)) Object.entries(raw.chapterChecks).forEach(([k,v])=>{if(/^ch-\d+-\d+$/.test(k)&&typeof v==='boolean')chapterChecks[k]=v;});
+  if(raw.chapterScores && typeof raw.chapterScores === 'object' && !Array.isArray(raw.chapterScores)) Object.entries(raw.chapterScores).forEach(([k,v])=>{if(/^\d$/.test(k)&&v&&typeof v==='object'){chapterScores[k]={completeness:clampScore(v.completeness),evidence:clampScore(v.evidence),logic:clampScore(v.logic),scope:clampScore(v.scope),writing:clampScore(v.writing),reviewer:['自評','教授確認','正式評審'].includes(v.reviewer)?v.reviewer:'自評',feedback:typeof v.feedback==='string'?v.feedback.slice(0,2000):''};}});
+  rubricDefs.forEach((r,i)=>scores['r'+i]=clampScore(raw.scores?.['r'+i],base.scores['r'+i]));
+  const decisions=Array.isArray(raw.decisions)?raw.decisions.filter(d=>d&&typeof d==='object').map(d=>({topic:String(d.topic||'').slice(0,200),context:String(d.context||'').slice(0,2000),owner:String(d.owner||'').slice(0,100),status:['待確認','已確認','暫緩'].includes(d.status)?d.status:'待確認',result:String(d.result||'').slice(0,2000),date:String(d.date||'').slice(0,20)})):base.decisions;
+  const reviews=Array.isArray(raw.reviews)?raw.reviews.filter(r=>r&&typeof r==='object').map(r=>({area:String(r.area||'').slice(0,100),source:String(r.source||'').slice(0,100),issue:String(r.issue||'').slice(0,2000),action:String(r.action||'').slice(0,2000),status:['待處理','處理中','已完成','不採用（附理由）'].includes(r.status)?r.status:'待處理',scope:r.scope==='是'?'是':'否',date:String(r.date||'').slice(0,20)})):[];
+  return {...base,version:STORAGE_VERSION,stage:Number.isInteger(raw.stage)?raw.stage:0,project,checks:{...base.checks,...checks},evidence:{...base.evidence,...evidence},chapterChecks,chapterScores,scores,decisions,reviews};
+}
+function loadState(){
+  let raw=localStorage.getItem(STORAGE_KEY);
+  if(!raw && NICE_MIGRATION){raw=LEGACY_NICE_STORAGE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);}
+  if(!raw) raw=LEGACY_UNIVERSAL_STORAGE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);
+  try{
+    const parsed=JSON.parse(raw||'{}');
+    if(NICE_MIGRATION && !parsed.project) parsed.project={...NICE_PROJECT};
+    const safe=normalizeState(parsed);
+    if(NICE_MIGRATION || raw!==localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY,JSON.stringify(safe));
+    return safe;
+  }catch(err){try{localStorage.setItem(STORAGE_KEY+'-invalid-backup',raw||'');}catch{}return NICE_MIGRATION?defaultState({...NICE_PROJECT}):defaultState();}
+}
+function saveState(notify=true){ try{const safe=normalizeState(state);state=safe;localStorage.setItem(STORAGE_KEY,JSON.stringify(safe));if(notify)toast('進度已儲存');}catch(err){toast('儲存失敗：狀態格式不合法');} }
+function completedCount(prefix, total){ let n=0; for(let i=0;i<total;i++){const key=prefix+'-'+i;if(state.checks[key]&&hasEvidence(key))n++;} return n; }
+function stageProgress(i){ return Math.round(completedCount(stages[i].id, stages[i].checks.length)/stages[i].checks.length*100); }
+function hasEvidence(key){ return typeof state.evidence[key]==='string' && state.evidence[key].trim().length>=3; }
+function stageEvidenceComplete(){ return stages.every(s=>s.checks.every((_,i)=>state.checks[s.id+'-'+i] && hasEvidence(s.id+'-'+i))); }
+function chapterEvidenceComplete(){ return chapters.every((c,ci)=>c.must.every((_,i)=>state.chapterChecks['ch-'+ci+'-'+i] && hasEvidence('ch-'+ci+'-'+i))); }
+function chapterScoreEvidenceReady(i){ const s=state.chapterScores[i]||{}; return ['completeness','evidence','logic','scope','writing'].every(k=>Number(s[k]||0)>=60) && String(s.feedback||'').trim().length>=10 && ['教授確認','正式評審'].includes(s.reviewer); }
+function chapterRequiredStage(i){ return state.project ? [0,1,3,6,6][i] : [0,1,2,5,5][i]; }
+function stageReady(i){ return i===0 || (stageProgress(i-1)===100 && stages[i-1].checks.every((_,j)=>hasEvidence(stages[i-1].id+'-'+j))); }
+function allProgress(){ let done=0,total=0; stages.forEach((s)=>{ total+=s.checks.length; done+=completedCount(s.id,s.checks.length); }); return Math.round(done/total*100); }
+function scoreTotal(){ return rubricDefs.reduce((sum,r,i)=>sum + (state.scores['r'+i]||0)*r[1]/100,0); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(text){ const t=document.createElement('div'); t.textContent=text; Object.assign(t.style,{position:'fixed',right:'20px',bottom:'20px',padding:'11px 15px',background:'#17231f',color:'#fff',zIndex:1000,boxShadow:'0 8px 24px rgba(0,0,0,.22)'}); document.body.appendChild(t); setTimeout(()=>t.remove(),1800); }
+function renderNav(){ document.getElementById('nav').innerHTML=Object.entries(sectionInfo).filter(([k])=>state.project||k==='wizard').map(([k,v])=>`<button data-section="${k}" class="${activeSection===k?'active':''}" title="${v[0]}" aria-label="${v[0]}"><span class="nav-icon">${v[2]}</span><span>${v[0]}</span></button>`).join(''); document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>switchSection(b.dataset.section)); }
+function switchSection(id){ activeSection=id; document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.getElementById('section-'+id).classList.add('active'); document.getElementById('pageTitle').textContent=sectionInfo[id][0]; document.getElementById('pageSub').textContent=sectionInfo[id][1]; renderNav(); if(id==='wizard') renderWizard(); if(id==='dashboard') renderDashboard(); if(id==='stages') renderStages(); if(id==='chapters') renderChapters(); if(id==='decisions') renderDecisions(); if(id==='taiwan') renderTaiwan(); if(id==='scores') renderScores(); if(id==='metrics') renderMetrics(); if(id==='reviews') renderReviews(); }
+function renderDashboard(){
+  const overall=allProgress(), score=scoreTotal(), next=stages.findIndex((_,i)=>stageProgress(i)<100 && stageReady(i));
+  const waiting=state.decisions.filter(d=>d.status==='待確認').length;
+  const chapterPass = chapters.every((_,i)=>chapterPercent(i)===100 && chapterScore(i)>=80 && chapterScoreEvidenceReady(i));
+  const dimensionPass = rubricDefs.every((_,i)=>Number(state.scores['r'+i]||0)>=60);
+  const evidencePass = stageEvidenceComplete() && chapterEvidenceComplete();
+  const taiwanPass = taiwanComplianceComplete();
+  const submissionReady = overall===100 && score>=80 && waiting===0 && chapterPass && dimensionPass && evidencePass && taiwanPass;
+  const submissionStatus = submissionReady && score>=90 ? '可優先投稿' : submissionReady ? '可投稿審查' : '不可投稿';
+  const stats=[['整體完成度',overall+'%','以所有階段驗收項目計算'],['可證據評分',score.toFixed(1)+'/100','達 80 才進入投稿審查'],['投稿狀態',submissionStatus,'需閘門、評分及決策同時通過'],['下一階段',next<0?'全部完成':stages[next].title,'只做一個未完成目標']];
+  document.getElementById('stats').innerHTML=stats.map((s,i)=>`<div class="stat"><div class="label">${s[0]}</div><div class="value">${s[1]}</div><div class="sub">${s[2]}</div>${i<2?`<div class="progress"><span style="width:${i===0?overall:score}%"></span></div>`:''}</div>`).join('');
+  document.getElementById('nextGate').textContent=next<0?'已完成所有階段':'下一關：'+stages[next].title;
+  document.getElementById('gateList').innerHTML=stages.map((s,i)=>{const p=stageProgress(i), ready=stageReady(i), status=p===100?'完成':ready?'可執行':'鎖定', cls=p===100?'ok':ready?'warn':'';return `<div class="gate ${ready?'':'locked'}" onclick="activeStage=${i};switchSection('stages')"><div class="gate-num">${i+1}</div><div><div class="gate-title">${s.title}</div><div class="gate-meta">截止 ${s.date} · ${s.purpose}</div><div class="progress"><span style="width:${p}%"></span></div></div><span class="pill ${cls}">${status} ${p}%</span></div>`}).join('');
+  document.getElementById('timeline').innerHTML=stages.filter((_,i)=>i>=Math.max(0,next-1)&&i<=Math.min(stages.length-1,Math.max(next,0)+4)).map(s=>`<div class="timeline-row"><div class="timeline-date">${s.date.slice(5)}</div><div><div class="timeline-title">${s.title}</div><div class="timeline-sub">${s.outputs.join(' / ')}</div></div></div>`).join('');
+  const nextCheck = next < 0 ? '' : stages[next].checks.find((_, i) => !state.checks[stages[next].id + '-' + i]);
+  document.getElementById('weeklyGoal').innerHTML=next<0?'所有閘門已完成。下一步是依官方簡章進行投稿版本檢查。':`<strong>${stages[next].title}</strong><br>完成「${nextCheck || stages[next].checks[0]}」，並形成可驗收的文件、資料或結果。不要同時開其他階段。`;
+}
+function renderStages(){
+  document.getElementById('stageNav').innerHTML=stages.map((s,i)=>`<button class="chapter-btn ${activeStage===i?'active':''}" data-stage="${i}"><strong>${String(i).padStart(2,'0')} ${s.title}</strong><small>${stageProgress(i)}% · ${s.date}${stageReady(i)?'':' · 鎖定'}</small></button>`).join('');
+  document.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>{activeStage=Number(b.dataset.stage);renderStages();});
+  const s=stages[activeStage], ready=stageReady(activeStage), p=stageProgress(activeStage);
+  document.getElementById('stageDetail').innerHTML=`${ready?'':`<div class="locked-note">此階段已鎖定：上一階段未達 100%。可以閱讀，但不建議開始產出。</div>`}<div style="display:flex;justify-content:space-between;gap:12px"><div><h2>${s.title}</h2><p class="chapter-purpose">${s.purpose}</p></div><span class="pill ${p===100?'ok':'warn'}">${p}%</span></div><div class="block-title">必須產出</div><div>${s.outputs.map(x=>`<span class="pill" style="margin:2px">${x}</span>`).join('')}</div><div class="block-title">驗收卡關項目</div><div class="checklist">${s.checks.map((c,i)=>{const id=s.id+'-'+i, done=!!state.checks[id];return `<div class="check-item ${done?'done':''}"><input type="checkbox" id="${id}" data-check="${id}" ${done?'checked':''} ${ready?'':'disabled'}><label for="${id}">${c}<em>驗收前必須填寫可追溯的檔案、頁碼、網址、會議紀錄或結果位置。</em></label><span class="pill ${done?'ok':'warn'}">${done?'通過':'未完成'}</span><div class="field" style="grid-column:1/-1"><label>證據位置</label><input data-evidence="${id}" value="${escapeHtml(state.evidence[id]||'')}" placeholder="例如：00_管理/研究定案.md 第 2 節" ${ready?'':'disabled'}></div></div>`}).join('')}</div><div class="block-title">老師決策點</div><div class="notice">${s.advisor}</div><div class="block-title">不可跨階段</div><p style="color:var(--muted);font-size:13px">未完成本階段驗收且補齊每項證據位置時，不得開始下一階段。</p>`;
+  document.querySelectorAll('[data-evidence]').forEach(e=>e.onchange=()=>{state.evidence[e.dataset.evidence]=e.value.trim();if(!state.evidence[e.dataset.evidence])delete state.checks[e.dataset.evidence];saveState(false);renderStages();renderDashboard();});
+  document.querySelectorAll('[data-check]').forEach(c=>c.onchange=()=>{if(c.checked&&!hasEvidence(c.dataset.check)){c.checked=false;toast('先填證據位置，才可通過此項');return;}state.checks[c.dataset.check]=c.checked;if(c.checked&&stageProgress(activeStage)===100&&activeStage<stages.length-1)toast('本階段通過，下一階段已解鎖');saveState(false);renderStages();renderDashboard();});
+}
+function renderChapters(){
+  document.getElementById('chapterNav').innerHTML=chapters.map((c,i)=>`<button class="chapter-btn ${activeChapter===i?'active':''}" data-chapter="${i}"><strong>${c.title}</strong><small>${chapterPercent(i)}% 契約完成</small></button>`).join('');
+  document.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>{activeChapter=Number(b.dataset.chapter);renderChapters();});
+  const c=chapters[activeChapter]; const minStage=chapterRequiredStage(activeChapter), locked=stageProgress(minStage)<100;
+  const contractComplete=chapterPercent(activeChapter)===100, scoreLocked=locked||!contractComplete;
+  const chapterScores = state.chapterScores[activeChapter] || {completeness:50,evidence:50,logic:50,scope:50,writing:50,reviewer:'自評',feedback:''};
+  document.getElementById('chapterDetail').innerHTML=`${locked?`<div class="locked-note">此章尚未取得上游階段充分證據：先完成「${stages[Math.min(minStage,stages.length-1)].title}」。章節勾選與評分暫時鎖定。</div>`:''}${!locked&&!contractComplete?'<div class="locked-note">章節契約尚未 100%；請先完成每項內容並填寫證據，才能開始章節評分。</div>':''}<h2>${c.title}</h2><p class="chapter-purpose">${c.goal}</p><div class="block-title">本章契約</div><div class="checklist">${c.must.map((x,i)=>{const id='ch-'+activeChapter+'-'+i,done=!!state.chapterChecks[id];return `<div class="check-item ${done?'done':''}"><input type="checkbox" id="${id}" data-chcheck="${id}" ${done?'checked':''} ${locked?'disabled':''}><label for="${id}">${x}</label><span class="pill ${done?'ok':'warn'}">${done?'已滿足':locked?'鎖定':'未驗證'}</span><div class="field" style="grid-column:1/-1"><label>證據位置</label><input data-chapter-evidence="${id}" value="${escapeHtml(state.evidence[id]||'')}" placeholder="例如：05_章節/第一章.md 第 3 節；或教授批註第 2 頁" ${locked?'disabled':''}></div></div>`}).join('')}</div><div class="block-title">必要證據</div><div>${c.evidence.map(x=>`<span class="pill" style="margin:2px">${x}</span>`).join('')}</div><div class="block-title">章節評分（教授模式）</div><div class="card" style="box-shadow:none"><div class="card-body">${[['completeness','完整度',25],['evidence','證據力',25],['logic','邏輯',20],['scope','範圍一致',15],['writing','寫作清楚度',15]].map(([k,label,w])=>`<div class="rubric-row"><div><strong>${label}</strong><br><span style="color:var(--muted);font-size:11px">權重 ${w}%；最低 60</span></div><input type="range" min="0" max="100" value="${chapterScores[k]}" data-chapter-score="${k}" ${scoreLocked?'disabled':''}><div class="score-value">${chapterScores[k]}</div></div>`).join('')}<div class="form-grid" style="margin-top:12px"><div class="field"><label>評分來源</label><select id="chapterReviewer" ${scoreLocked?'disabled':''}><option ${chapterScores.reviewer==='自評'?'selected':''}>自評</option><option ${chapterScores.reviewer==='教授確認'?'selected':''}>教授確認</option><option ${chapterScores.reviewer==='正式評審'?'selected':''}>正式評審</option></select></div><div class="field full"><label>教授／評審回饋（至少 10 字）</label><textarea id="chapterFeedback" ${scoreLocked?'disabled':''}>${escapeHtml(chapterScores.feedback||'')}</textarea></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><span>章節總分：<strong>${chapterScore(activeChapter).toFixed(1)}/100</strong></span><span class="pill ${chapterScore(activeChapter)>=80&&chapterScoreEvidenceReady(activeChapter)?'ok':'bad'}">${chapterScore(activeChapter)>=80&&chapterScoreEvidenceReady(activeChapter)?'通過':'未達章節通過條件'}</span></div></div></div><div class="block-title">卡關規則</div><div class="notice">${c.blocked}</div>`;
+  document.querySelectorAll('[data-chapter-evidence]').forEach(e=>e.onchange=()=>{state.evidence[e.dataset.chapterEvidence]=e.value.trim();if(!state.evidence[e.dataset.chapterEvidence])delete state.chapterChecks[e.dataset.chapterEvidence];saveState(false);renderChapters();});
+  document.querySelectorAll('[data-chcheck]').forEach(c=>c.onchange=()=>{if(c.checked&&!hasEvidence(c.dataset.chcheck)){c.checked=false;toast('先填章節證據位置，才可標示完成');return;}state.chapterChecks[c.dataset.chcheck]=c.checked;saveState(false);renderChapters();});
+  document.querySelectorAll('[data-chapter-score]').forEach(r=>r.oninput=()=>{const current=state.chapterScores[activeChapter]||{...chapterScores};current[r.dataset.chapterScore]=Number(r.value);state.chapterScores[activeChapter]=current;saveState(false);renderChapters();});
+  document.getElementById('chapterReviewer').onchange=e=>{const current=state.chapterScores[activeChapter]||{...chapterScores};current.reviewer=e.target.value;state.chapterScores[activeChapter]=current;saveState(false);renderChapters();};
+  document.getElementById('chapterFeedback').onchange=e=>{const current=state.chapterScores[activeChapter]||{...chapterScores};current.feedback=e.target.value;state.chapterScores[activeChapter]=current;saveState(false);};
+}
+function chapterScore(i){ const s=state.chapterScores[i]||{completeness:50,evidence:50,logic:50,scope:50,writing:50}; return s.completeness*.25+s.evidence*.25+s.logic*.2+s.scope*.15+s.writing*.15; }
+function chapterPercent(i){ const c=chapters[i]; return Math.round(c.must.filter((_,j)=>{const key='ch-'+i+'-'+j;return state.chapterChecks[key]&&hasEvidence(key);}).length/c.must.length*100); }
+function taiwanRequirements(){
+  const p=state.project||{}; const isNthu=String(p.school||'').includes('清華大學'); const year=Number(String(p.enrollmentYear||'').match(/\d+/)?.[0]);
+  const isGraduate=['碩士','在職碩士','博士'].includes(p.degree); const isDoctor=p.degree==='博士'; const isBachelor=p.degree==='學士';
+  const degreeNote=isDoctor?'博士需另外確認資格考、研究發表、年限及委員資格／迴避。':p.degree==='在職碩士'?'在職碩士仍依原學制辦法；不得因在職身分省略提案、送審或倫理流程。':isBachelor?'學士以專題／系所審查為準，未必需套用碩博士學位考試流程。':'碩士依系所學位考試及送審規定辦理。';
+  const items=[
+    {label:'已取得當年度修業規定、畢業條件及學分／資格清單',required:true,note:`以學校、系所與入學年度公告為準。${degreeNote}`},
+    {label:'已確認指導教授、研究計畫／提案及系所核准流程',required:true,note:isDoctor?'博士通常另有研究提案、資格考及階段審查；依系所公告確認。':'教授口頭確認應另有書面或會議紀錄'},
+    {label:'學術研究倫理教育課程已完成或已安排於期限前通過',required:true,note:isNthu&&(!Number.isFinite(year)||year>=104)?'清華預設：104 學年度起入學，第一學年結束前修畢；未完成不得申請學位口試。仍以當年度公告為準。':'依學校、學制與入學年度規定'},
+    {label:'論文相似度／原創性檢查方式已確認並完成所需文件',required:true,note:isNthu&&isGraduate&&(!Number.isFinite(year)||year>=108)?'清華預設：108 學年度起入學之碩博士學位考試需備相似度報告；門檻由系所自訂。':'依系所公告確認報告、工具、門檻及是否適用'},
+    {label:'人體研究、問卷、訪談或可識別個資之倫理／IRB／REC 審查已處理',required:p.humanSubjects==='是'||p.humanSubjects==='不確定',note:p.humanSubjects==='否'?'目前申報不涉及人體研究；若研究方法改變，必須重新判斷。':'不得在未核准前先蒐集人體資料'},
+    {label:isDoctor?'博士資格考、學位考試申請資格、委員人數及刊登／公開要求已核對':'學位考試申請資格、期限、委員人數與申請表已核對',required:isGraduate&&!isBachelor,note:isDoctor?'博士資格、委員資格、迴避、外審及研究成果要求依系所辦法。':'每校及領域對委員資格、提前送件與公開資訊不同'},
+    {label:'論文格式、封面、書名頁、授權書與浮水印符合官方模板',required:isGraduate,note:isBachelor?'改用系所專題報告格式':'不可只使用他校範本'},
+    {label:'口試或評審後修改、委員意見回覆與指導教授／系所確認完成',required:isGraduate,note:'修改需保留原意見、處理方式與證據位置；學士依系所專題評審確認'},
+    {label:'電子論文上傳、全文授權／延後公開與紙本繳交完成',required:isGraduate,note:isGraduate?'延後公開須依學校與法定程序，不可自行決定':'如學士系所要求另行辦理'},
+    {label:'離校、學位審核、成績與系所／圖書館／教務流程完成',required:true,note:'確認截止日、補繳期限及學位層級所需程序'}
+  ];
+  return items;
+}
+function validInstitutionUrl(value){ try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&u.hostname.includes('.');}catch{return false;} }
+function institutionRuleIsFresh(p){ const checked=new Date(p?.institutionCheckedAt); if(Number.isNaN(checked.getTime()))return false; const age=(Date.now()-checked.getTime())/86400000; return age>=0&&age<=366; }
+function institutionGovernanceComplete(){ const p=state.project||{}; return validInstitutionUrl(p.institutionUrl)&&institutionRuleIsFresh(p)&&String(p.institutionRuleVersion||'').trim().length>=6; }
+function validTaiwanEvidence(value){ const text=String(value||'').trim(); if(validInstitutionUrl(text))return true; return text.length>=8 && /\.(pdf|docx?|xlsx?|png|jpe?g|md)$/i.test(text) || /(證明|申請表|報告|公告|會議紀錄|核准|完成畫面)/.test(text); }
+function taiwanComplianceComplete(){ const items=taiwanRequirements(); return institutionGovernanceComplete() && items.every((item,i)=>!item.required || (state.checks['tw-'+i]&&validTaiwanEvidence(state.evidence['tw-'+i]))); }
+function renderTaiwan(){
+  const p=state.project||{}; const items=taiwanRequirements(); const complete=taiwanComplianceComplete();
+  document.getElementById('taiwanComplianceStatus').textContent=complete?'制度合規':!institutionGovernanceComplete()?'制度版本待核對':'尚未完成';
+  document.getElementById('taiwanComplianceStatus').className='pill '+(complete?'ok':'warn');
+  document.getElementById('taiwanChecklist').innerHTML=items.map((item,i)=>{const key='tw-'+i,done=!!state.checks[key]&&hasEvidence(key);return `<div class="check-item ${done?'done':''}"><input type="checkbox" id="${key}" data-twcheck="${key}" ${done?'checked':''} ${item.required?'':'disabled'}><label for="${key}">${item.label}${item.required?'':' <span class="pill">不適用</span>'}<em>${item.note}</em></label><span class="pill ${done?'ok':item.required?'warn':''}">${done?'已驗收':item.required?'待完成':'依研究狀態'}</span><div class="field" style="grid-column:1/-1"><label>官方網址／文件／證明位置</label><input data-twevidence="${key}" value="${escapeHtml(state.evidence[key]||'')}" placeholder="貼官方規定網址、通過證明、申請表或文件位置" ${item.required?'':'disabled'}></div></div>`}).join('');
+  document.querySelectorAll('[data-twevidence]').forEach(e=>e.onchange=()=>{state.evidence[e.dataset.twevidence]=e.value.trim();if(!state.evidence[e.dataset.twevidence])delete state.checks[e.dataset.twevidence];saveState(false);renderTaiwan();});
+  document.querySelectorAll('[data-twcheck]').forEach(c=>c.onchange=()=>{if(c.checked&&!validTaiwanEvidence(state.evidence[c.dataset.twcheck])){c.checked=false;toast('請填有效官方網址，或 .pdf/.docx/.md 等證明文件位置');return;}state.checks[c.dataset.twcheck]=c.checked;saveState(false);renderTaiwan();renderDashboard();});
+  document.getElementById('institutionProfile').innerHTML=`<div class="field"><label>國家／制度</label><input value="台灣學位制度" disabled></div><div class="field"><label>學校</label><input id="instSchool" value="${escapeHtml(p.school||'')}"></div><div class="field"><label>系所／學位學程</label><input id="instDepartment" value="${escapeHtml(p.department||'')}"></div><div class="field"><label>學位層級</label><select id="instDegree"><option ${p.degree==='碩士'?'selected':''}>碩士</option><option ${p.degree==='在職碩士'?'selected':''}>在職碩士</option><option ${p.degree==='博士'?'selected':''}>博士</option><option ${p.degree==='學士'?'selected':''}>學士</option></select></div><div class="field"><label>入學學年度</label><input id="instYear" value="${escapeHtml(p.enrollmentYear||'')}"></div><div class="field"><label>人體研究狀態</label><select id="instHuman"><option ${p.humanSubjects==='否'?'selected':''}>否</option><option ${p.humanSubjects==='是'?'selected':''}>是</option><option ${p.humanSubjects==='不確定'?'selected':''}>不確定</option></select></div><div class="field full"><label>學校規定／制度網址</label><input id="instUrl" value="${escapeHtml(p.institutionUrl||'')}" placeholder="https://校方官方網址"></div><div class="field"><label>最後核對日期</label><input id="instCheckedAt" type="date" value="${escapeHtml(p.institutionCheckedAt||'')}"></div><div class="field"><label>規定版本／來源</label><input id="instRuleVersion" value="${escapeHtml(p.institutionRuleVersion||'')}" placeholder="例如：115 學年度 AIMS 規定"></div><div class="field full"><label>相似度／原創性規則</label><input id="instSimilarity" value="${escapeHtml(p.similarityRule||'')}"></div><div class="full"><button class="btn primary" id="saveInstitution">儲存制度設定</button></div><div class="full notice">制度版本須在最近 366 天內核對，且官方網址為有效 http(s) URL。清華預設僅為提示，不取代當年度系所公告。</div>`;
+  document.getElementById('saveInstitution').onclick=()=>{const nextUrl=document.getElementById('instUrl').value.trim(),checkedAt=document.getElementById('instCheckedAt').value,ruleVersion=document.getElementById('instRuleVersion').value.trim();if(!validInstitutionUrl(nextUrl))return toast('請填有效的官方 http(s) 網址');if(!checkedAt||!ruleVersion)return toast('請填最後核對日期與規定版本');state.project={...state.project,school:document.getElementById('instSchool').value.trim(),department:document.getElementById('instDepartment').value.trim(),degree:document.getElementById('instDegree').value,enrollmentYear:document.getElementById('instYear').value.trim(),humanSubjects:document.getElementById('instHuman').value,institutionUrl:nextUrl,institutionCheckedAt:checkedAt,institutionRuleVersion:ruleVersion,similarityRule:document.getElementById('instSimilarity').value.trim()};saveState(false);renderTaiwan();updateBrand();toast('台灣制度設定已更新');};
+}
+function renderDecisions(){
+  const pending=state.decisions.filter(d=>d.status==='待確認').length; document.getElementById('decisionCount').textContent='待確認 '+pending;
+  document.getElementById('decisionList').innerHTML=state.decisions.length?state.decisions.map((d,i)=>`<div class="decision"><div style="display:flex;justify-content:space-between;gap:10px"><h3>${escapeHtml(d.topic)}</h3><span class="pill ${d.status==='已確認'?'ok':d.status==='暫緩'?'':'warn'}">${escapeHtml(d.status)}</span></div><p>${escapeHtml(d.context)}</p>${d.result?`<p style="margin-top:7px;color:var(--ink)"><strong>結論：</strong>${escapeHtml(d.result)}</p>`:''}<p style="margin-top:7px">負責：${escapeHtml(d.owner)} · ${escapeHtml(d.date||'')}</p><button class="btn" style="margin-top:8px" onclick="toggleDecision(${i})">${d.status==='已確認'?'改回待確認':'標示已確認'}</button></div>`).join(''):'<div class="empty">目前沒有決策。</div>';
+}
+window.toggleDecision=function(i){state.decisions[i].status=state.decisions[i].status==='已確認'?'待確認':'已確認';saveState(false);renderDecisions();};
+function renderScores(){
+  document.getElementById('overallScore').textContent=scoreTotal().toFixed(1)+' / 100';
+  document.getElementById('rubric').innerHTML=rubricDefs.map((r,i)=>`<div class="rubric-row"><div><strong>${r[0]}</strong><br><span style="color:var(--muted);font-size:11px">權重 ${r[1]}%</span></div><input type="range" min="0" max="100" value="${state.scores['r'+i]}" data-score="r${i}"><div class="score-value" id="sv-r${i}">${state.scores['r'+i]}</div><div class="rubric-hint" style="grid-column:1/-1;color:var(--muted);font-size:11px">${r[2]}</div></div>`).join('');
+  document.querySelectorAll('[data-score]').forEach(r=>r.oninput=()=>{state.scores[r.dataset.score]=Number(r.value);document.getElementById('sv-'+r.dataset.score).textContent=r.value;document.getElementById('overallScore').textContent=scoreTotal().toFixed(1)+' / 100';saveState(false);});
+}
+function renderMetrics(){
+  const generic=!!state.project;
+  document.getElementById('metricTable').innerHTML=`<table class="metric-table"><thead><tr><th>指標</th><th>定義／公式</th><th>研究用途</th><th>報告層級</th><th>防守重點</th></tr></thead><tbody>${metrics.map(m=>`<tr><td><strong>${m[0]}</strong></td><td><code>${m[1]}</code>${generic?'':`<br><span style="color:var(--muted)">${m[2]}</span>`}</td><td>${generic?m[2]:m[4]}</td><td>${m[3]}</td><td>${generic?m[4]:(m[0].includes('可信度')?'分項呈現；若加權必須做敏感度。':m[0].includes('查核')?'只做情境分析，不稱實際公司效益。':'不得只報告最佳情境或 Accuracy。')}</td></tr>`).join('')}</tbody></table>`;
+}
+function renderReviews(){
+  document.getElementById('reviewList').innerHTML=state.reviews.length?state.reviews.map((r,i)=>`<div class="decision"><div style="display:flex;justify-content:space-between;gap:10px"><h3>${escapeHtml(r.area)} · ${escapeHtml(r.source)}</h3><span class="pill ${r.status==='已完成'?'ok':'warn'}">${escapeHtml(r.status)}</span></div><p><strong>問題：</strong>${escapeHtml(r.issue)}</p><p style="margin-top:6px"><strong>處理：</strong>${escapeHtml(r.action||'尚未填寫')}</p><p style="margin-top:6px">影響範圍：${escapeHtml(r.scope)} · ${escapeHtml(r.date)}</p><button class="btn" style="margin-top:8px" onclick="completeReview(${i})">標示已完成</button></div>`).join(''):'<div class="empty">尚無修改紀錄。收到老師意見後，原文與處理方式都要保留。</div>';
+}
+window.completeReview=function(i){state.reviews[i].status='已完成';saveState(false);renderReviews();};
+function renderWizard(){
+  const choices=document.getElementById('researchTypeChoices');
+  choices.innerHTML=Object.entries(researchTypes).map(([key,t])=>`<button class="choice ${selectedResearchType===key?'selected':''}" data-type="${key}"><strong>${t.name}</strong><span>${t.desc}</span></button>`).join('');
+  document.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{selectedResearchType=b.dataset.type;renderWizard();updateDiagnosis();});
+  document.querySelectorAll('[data-wizard-step]').forEach(el=>el.classList.toggle('active',Number(el.dataset.wizardStep)===wizardStep));
+  document.getElementById('wizardProgress').querySelectorAll('span').forEach((s,i)=>s.classList.toggle('done',i<=wizardStep));
+  document.getElementById('wizardStepLabel').textContent=`步驟 ${wizardStep+1} / 4`;
+  updateAutoTypeHint();
+  document.getElementById('wizPrev').disabled=wizardStep===0;
+  document.getElementById('wizNext').textContent=wizardStep===3?'建立專案':'下一步';
+  updateDiagnosis();
+}
+function inferResearchType(text){
+  const value=(text||'').toLowerCase();
+  const checks=[['review',/(文獻回顧|系統性回顧|meta|prisma|後設)/i],['survey',/(問卷|量表|構念|受試者|中介|調節|態度|知覺)/i],['qualitative',/(訪談|質性|田野|逐字稿|主題分析|紮根)/i],['case',/(個案|案例研究|組織個案|管理個案)/i],['design',/(系統|平台|工具|原型|設計科學|演算法|架構)/i],['quantitative',/(實驗|比較|模型|預測|分類|迴歸|效果|因果|資料集)/i]];
+  for(const [type,rx] of checks) if(rx.test(value)) return type;
+  return '';
+}
+function getWizardProfile(){
+  return {country:'台灣',type:selectedResearchType,school:document.getElementById('wizSchool').value.trim(),department:document.getElementById('wizDepartment').value.trim(),degree:document.getElementById('wizDegree').value,enrollmentYear:document.getElementById('wizEnrollmentYear').value.trim(),institutionUrl:document.getElementById('wizInstitutionUrl').value.trim(),similarityRule:document.getElementById('wizSimilarityRule').value.trim(),humanSubjects:document.getElementById('wizHumanSubjects').value,student:document.getElementById('wizStudent').value.trim(),advisor:document.getElementById('wizAdvisor').value.trim(),title:document.getElementById('wizTitle').value.trim(),question:document.getElementById('wizQuestion').value.trim(),deadline:document.getElementById('wizDeadline').value,hours:Number(document.getElementById('wizHours').value)||8,dataType:document.getElementById('wizDataType').value,dataStatus:document.getElementById('wizDataStatus').value,sample:document.getElementById('wizSample').value.trim(),labels:document.getElementById('wizLabels').value,access:document.getElementById('wizAccess').value,method:document.getElementById('wizMethod').value,advisorApproved:document.getElementById('wizAdvisorApproved').value};
+}
+function updateAutoTypeHint(){
+  const p=getWizardProfile(), inferred=inferResearchType(`${p.title} ${p.question}`), box=document.getElementById('autoTypeHint');
+  if(!box) return;
+  if(!inferred){box.textContent='精靈尚未能判型。請補充研究問題、資料對象或希望比較的關係。';return;}
+  const inferredName=researchTypes[inferred].name;
+  box.textContent=inferred===p.type?`精靈判讀與你的選擇一致：${inferredName}。`:`精靈判讀建議「${inferredName}」，與你選擇的「${researchTypes[p.type]?.name||'未選擇'}」不同。建立前需確認資料與方法。`;
+}
+function diagnoseProfile(p){
+  const type=researchTypes[p.type];
+  let score=35, warnings=[]; let hardCap=100;
+  const minSample={quantitative:30,survey:100,qualitative:6,case:1,design:1,review:20};
+  const requiredHours={quantitative:240,survey:220,qualitative:200,case:180,design:280,review:160};
+  const digits=String(p.sample||'').replace(/,/g,'').match(/\d+(?:\.\d+)?/); const sample=digits?Number(digits[0]):NaN;
+  if(type) score+=10; else warnings.push('尚未選擇研究類型');
+  if(p.title && p.question) score+=10; else warnings.push('題目與核心問題尚未完整');
+  if(p.dataStatus==='已取得'||p.dataStatus==='能自行產生') score+=20; else if(p.dataStatus==='可申請取得'){score+=8;hardCap=Math.min(hardCap,78);}else{score-=5;hardCap=Math.min(hardCap,55);warnings.push('資料取得尚未落地');}
+  if(Number.isFinite(sample)){score+=10;if(sample<minSample[p.type]){hardCap=Math.min(hardCap,55);warnings.push(`樣本約 ${sample}，低於${type?.name||'此類'}初步門檻 ${minSample[p.type]}`);}else if(sample<minSample[p.type]*2){warnings.push('樣本僅接近最低門檻，需另做檢定力或飽和說明');}}else{hardCap=Math.min(hardCap,70);warnings.push('樣本或文件量未能量化');}
+  if(p.access==='尚未確認'){score-=20;hardCap=Math.min(hardCap,55);warnings.push('權限與倫理狀態未確認');}else if(p.access==='需要倫理審查或授權'||p.access==='涉及個資或公司機敏'){score-=5;hardCap=Math.min(hardCap,75);warnings.push('須在資料階段前完成倫理、授權與去識別');}else score+=5;
+  if(p.humanSubjects==='不確定'){score-=12;hardCap=Math.min(hardCap,65);warnings.push('人體研究／IRB／REC 適用範圍尚未確認');}else if(p.humanSubjects==='是'){score-=5;hardCap=Math.min(hardCap,75);warnings.push('需先完成人體研究倫理審查、知情同意與個資程序');}
+  if(p.advisorApproved==='已確認') score+=10; else if(p.advisorApproved==='部分確認'){score+=4;hardCap=Math.min(hardCap,78);}else{score-=5;hardCap=Math.min(hardCap,70);warnings.push('指導教授尚未確認方向');}
+  const deadline=new Date(p.deadline), now=new Date(), weeks=(deadline-now)/604800000;
+  const availableHours=Number(p.hours||0)*Math.max(0,weeks), needHours=requiredHours[p.type]||180;
+  if(!p.deadline||!Number.isFinite(weeks)||weeks<=0){hardCap=Math.min(hardCap,55);warnings.push('截止日期無效、已過或未設定');}else if(availableHours<needHours*.35){hardCap=Math.min(hardCap,50);warnings.push(`依每週時數估計僅有約 ${Math.max(0,availableHours).toFixed(0)} 小時，低於最低工作量`);}else if(availableHours<needHours*.65){hardCap=Math.min(hardCap,68);warnings.push(`可投入時間約 ${availableHours.toFixed(0)} 小時，需縮小題目或延後截止日`);}else score+=5;
+  if(p.hours<4){hardCap=Math.min(hardCap,60);warnings.push('每週時數過低，需大幅延長時程');}
+  const inferred=inferResearchType(`${p.title} ${p.question}`);
+  if(inferred && inferred!==p.type){score-=12;hardCap=Math.min(hardCap,72);warnings.push(`題目文字較像${researchTypes[inferred].name}，請確認研究分類`);}
+  if(p.type==='survey' && !['問卷資料','實驗資料'].includes(p.dataType)){score-=25;hardCap=Math.min(hardCap,55);warnings.push('問卷研究與主要資料類型不相容');}
+  if(p.type==='review' && p.dataType!=='文獻資料'){score-=25;hardCap=Math.min(hardCap,55);warnings.push('文獻回顧未使用文獻作為主要資料');}
+  if(p.type==='qualitative' && !['訪談或質性資料','文獻資料'].includes(p.dataType)){score-=20;hardCap=Math.min(hardCap,55);warnings.push('質性研究缺少訪談、觀察或文本資料');}
+  if(p.type==='case' && !['公司／組織資料','訪談或質性資料','文獻資料'].includes(p.dataType)){score-=15;hardCap=Math.min(hardCap,60);warnings.push('個案研究缺少可形成案例邊界的資料');}
+  if(p.type==='design' && p.dataStatus==='尚未取得' && p.dataType!=='合成資料'){score-=10;hardCap=Math.min(hardCap,60);warnings.push('設計研究仍需可評估的原型或使用情境');}
+  const methodFamily={ '量化實驗與比較':['quantitative','design'], '統計模型':['quantitative','survey'], '問卷與調查':['survey'], '質性訪談':['qualitative','case'], '個案研究':['case'], '系統開發／設計科學':['design'], '系統性文獻回顧':['review']};
+  if(p.method!=='由精靈依研究類型建議'&&methodFamily[p.method]&&!methodFamily[p.method].includes(p.type)){score-=15;hardCap=Math.min(hardCap,65);warnings.push('偏好方法與已選研究類型不相容');}
+  score=Math.max(0,Math.min(hardCap,score));
+  const feasibility=score>=80?'可行':score>=60?'有條件可行':'高風險';
+  return {score,feasibility,type,warnings,method:!p.method||p.method==='由精靈依研究類型建議'?(type?type.methods.slice(0,3).join('、'):'待辨識'):p.method,requiredHours:needHours,availableHours:Math.max(0,availableHours||0),minimumSample:minSample[p.type]};
+}
+function updateDiagnosis(){
+  if(wizardStep!==3) return;
+  const p=getWizardProfile(),d=diagnoseProfile(p);
+  document.getElementById('wizardDiagnosis').innerHTML=`<div class="diagnosis-item"><strong>研究類型</strong><div class="big">${d.type?d.type.name:'待辨識'}</div><span>${d.type?d.type.desc:''}</span></div><div class="diagnosis-item"><strong>資料可行性</strong><div class="big">${d.score}/100</div><span class="pill ${d.score>=80?'ok':d.score>=60?'warn':'bad'}">${d.feasibility}</span></div><div class="diagnosis-item"><strong>方法與資源</strong><div>${escapeHtml(d.method)}</div><span>可投入約 ${Math.round(d.availableHours||0)} 小時；粗估需 ${d.requiredHours||0} 小時；初步樣本門檻 ${d.minimumSample||'待判斷'}。</span></div><div class="diagnosis-item" style="grid-column:1/-1"><strong>風險與警告</strong><span>${d.warnings.length?d.warnings.join('；'):'未見核心阻礙'}</span></div><div class="diagnosis-item" style="grid-column:1/-1"><strong>必防守方法風險</strong><span>${d.type?d.type.risks.join('、'):'先選研究類型'}</span></div>`;
+}
+function createWizardProject(){
+  const p=getWizardProfile(), d=diagnoseProfile(p);
+  if(!p.type) return toast('請先選擇研究類型');
+  if(!p.title || !p.question) return toast('請填暫定題目與核心研究問題');
+  if(!p.school || !p.department || !p.degree || !p.enrollmentYear) return toast('請完整填寫學校、系所、學位層級與入學年度');
+  if(!p.deadline) return toast('請設定完成日期');
+  if(!confirm(`將建立「${p.title}」的${d.type.name}研究專案。現有進度會被替換，建議先匯出 JSON。要繼續嗎？`)) return;
+  if(d.score<60 && !confirm(`此專案目前為高風險（${d.score}/100）。警告：${d.warnings.join('；')}。仍要建立專案嗎？`)) return;
+  p.diagnosis={score:d.score,feasibility:d.feasibility,warnings:d.warnings,requiredHours:d.requiredHours,availableHours:d.availableHours,minimumSample:d.minimumSample};
+  buildProject(p);
+  state={version:STORAGE_VERSION,stage:0,project:p,checks:{},evidence:{},chapterChecks:{},chapterScores:{},scores:Object.fromEntries(rubricDefs.map((r,i)=>['r'+i, Math.max(40,Math.min(70,d.score-10))])),decisions:[{topic:'確認研究類型、RQ 與資料可行性',context:`初診：${d.feasibility} ${d.score}/100。建議方法：${d.method}。`,owner:p.advisor||'指導教授',status:p.advisorApproved==='已確認'?'已確認':'待確認',result:'',date:new Date().toISOString().slice(0,10)}],reviews:[]};
+  activeStage=0; activeChapter=0; saveState(false); updateBrand(); switchSection('dashboard'); toast('專案已建立，先完成方向與問題閘門');
+}
+function updateBrand(){
+  const p=state.project, name=document.querySelector('.brand strong'), meta=document.querySelector('.brand span'), mark=document.querySelector('.mark');
+  if(name) name.textContent='論文指導系統';
+  if(p){if(meta)meta.textContent=`${p.student||'學生'} / ${researchTypes[p.type]?.name||'研究'} / ${p.deadline?.slice(0,4)||''}`;if(mark)mark.textContent=(p.student||'研').slice(0,1);document.title=`${p.student||'學生'} 論文指導系統`;}else{if(meta)meta.textContent='教授精靈 / 共用入口';if(mark)mark.textContent='✦';document.title='通用論文指導系統';}
+}
+document.getElementById('saveBtn').onclick=()=>saveState();
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>2_000_000)throw new Error('檔案過大');const parsed=JSON.parse(await file.text());if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('格式不符');if(!parsed.checks||!parsed.chapterScores||!parsed.scores||!Array.isArray(parsed.decisions)||!Array.isArray(parsed.reviews))throw new Error('缺少必要欄位');if(parsed.project&&!researchTypes[parsed.project.type])throw new Error('不支援的研究類型');if(!parsed.project||!researchTypes[parsed.project.type])throw new Error('匯入檔必須具有有效研究類型，請先由教授精靈建立專案');if(NICE_MIGRATION&&parsed.project.source!=='nice-migration')throw new Error('遷移入口僅接受 Nice 舊專案資料');if(!confirm('將以匯入檔取代目前專案進度，要繼續嗎？'))return;const imported=normalizeState(parsed);if(imported.project)buildProject(imported.project);state=imported;saveState(false);updateBrand();activeSection=state.project?'dashboard':'wizard';switchSection(activeSection);toast('專案已匯入並通過格式驗證');}catch(err){toast(`匯入失敗：${err.message||'檔案格式或內容不符'}`);}finally{e.target.value='';}};
+document.getElementById('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.project?.student||'nice').replaceAll(' ','_')+'_thesis_progress.json';a.click();URL.revokeObjectURL(a.href);};
+document.getElementById('resetBtn').onclick=()=>{if(confirm('確定重設目前專案的進度、評分與紀錄？研究類型與基本資料會保留。')){const project=state.project;if(project)buildProject(project);state=defaultState(project||null);state.project=project||null;saveState(false);activeStage=0;activeChapter=0;updateBrand();switchSection(project?'dashboard':'wizard');}};
+document.getElementById('addDecision').onclick=()=>{const topic=document.getElementById('decisionTopic').value.trim();if(!topic)return toast('請填待決議題');state.decisions.unshift({topic,context:document.getElementById('decisionContext').value.trim(),owner:document.getElementById('decisionOwner').value,status:document.getElementById('decisionStatus').value,result:document.getElementById('decisionResult').value.trim(),date:new Date().toISOString().slice(0,10)});['decisionTopic','decisionContext','decisionResult'].forEach(id=>document.getElementById(id).value='');saveState(false);renderDecisions();};
+document.getElementById('addReview').onclick=()=>{const issue=document.getElementById('reviewIssue').value.trim();if(!issue)return toast('請填原始問題或意見');state.reviews.unshift({area:document.getElementById('reviewArea').value,source:document.getElementById('reviewSource').value,issue,action:document.getElementById('reviewAction').value.trim(),status:document.getElementById('reviewStatus').value,scope:document.getElementById('reviewScope').value,date:new Date().toISOString().slice(0,10)});['reviewIssue','reviewAction'].forEach(id=>document.getElementById(id).value='');saveState(false);renderReviews();};
+document.getElementById('wizPrev').onclick=()=>{wizardStep=Math.max(0,wizardStep-1);renderWizard();};
+document.getElementById('wizNext').onclick=()=>{if(wizardStep===0&&!selectedResearchType)return toast('請先選擇研究類型');if(wizardStep===1){const p=getWizardProfile();if(!p.title||!p.question)return toast('請先填題目與核心研究問題');}if(wizardStep===3){createWizardProject();return;}wizardStep++;renderWizard();};
+['wizTitle','wizQuestion'].forEach(id=>document.getElementById(id).addEventListener('input',updateAutoTypeHint));
+['wizHours','wizSample','wizAccess','wizDataStatus','wizDataType','wizLabels','wizAdvisorApproved','wizMethod'].forEach(id=>document.getElementById(id).addEventListener('change',updateDiagnosis));
+updateBrand();switchSection(activeSection);
+</script>
+</body>
+</html>
